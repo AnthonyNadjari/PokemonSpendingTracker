@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PokeTracker - Pokemon Card Expense Tracker</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%23FF1C1C'/%3E%3Crect x='2' y='47' width='96' height='6' fill='%23222'/%3E%3Ccircle cx='50' cy='50' r='48' fill='none' stroke='%23222' stroke-width='4'/%3E%3Ccircle cx='50' cy='50' r='15' fill='%23fff' stroke='%23222' stroke-width='4'/%3E%3Ccircle cx='50' cy='50' r='7' fill='%23222'/%3E%3Cpath d='M2 50 A48 48 0 0 0 98 50' fill='%23fff'/%3E%3Crect x='2' y='47' width='96' height='6' fill='%23222'/%3E%3Ccircle cx='50' cy='50' r='15' fill='%23fff' stroke='%23222' stroke-width='4'/%3E%3Ccircle cx='50' cy='50' r='7' fill='%23222'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%230d1117'/%3E%3Ccircle cx='90' cy='90' r='70' fill='%23FF1C1C'/%3E%3Crect x='20' y='87' width='140' height='6' fill='%23222'/%3E%3Ccircle cx='90' cy='90' r='70' fill='none' stroke='%23222' stroke-width='4'/%3E%3Cpath d='M20 90 A70 70 0 0 0 160 90' fill='%23fff'/%3E%3Crect x='20' y='87' width='140' height='6' fill='%23222'/%3E%3Ccircle cx='90' cy='90' r='20' fill='%23fff' stroke='%23222' stroke-width='4'/%3E%3Ccircle cx='90' cy='90' r='10' fill='%23FF1C1C'/%3E%3C/svg%3E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PokeTracker">
+<meta name="theme-color" content="#0d1117">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Exo+2:wght@600;700;800&display=swap" rel="stylesheet">
@@ -239,7 +245,7 @@ body::after{
   border-radius:var(--radius);overflow:hidden;margin-bottom:24px;
 }
 .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
-table{width:100%;border-collapse:collapse;min-width:620px}
+table{width:100%;border-collapse:collapse;min-width:700px}
 thead{background:var(--bg-tertiary)}
 thead th{
   padding:12px 16px;font-size:0.75rem;font-weight:600;
@@ -339,6 +345,20 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
 }
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.store-name-wrap{display:flex;gap:8px}
+.store-name-wrap select{flex:1}
+.store-name-wrap .btn-add-store{
+  flex-shrink:0;width:44px;height:44px;border-radius:var(--radius-sm);
+  background:var(--bg-tertiary);border:1px solid var(--border-color);
+  color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;
+  justify-content:center;transition:var(--transition);font-size:1.2rem;
+}
+.store-name-wrap .btn-add-store:hover{color:var(--text-primary);border-color:var(--text-muted)}
+.store-tag{
+  display:inline-flex;align-items:center;gap:2px;
+  font-size:0.72rem;color:var(--text-muted);max-width:100px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
 .price-input-wrap{position:relative}
 .price-input-wrap .currency-label{
   position:absolute;left:12px;top:50%;transform:translateY(-50%);
@@ -527,6 +547,7 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
             <th>Unit Price</th>
             <th>Total</th>
             <th>Source</th>
+            <th>Store</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -617,13 +638,24 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
           </div>
         </div>
         <div class="auto-calc" id="form-auto-calc" style="margin-top:-10px;margin-bottom:16px"></div>
-        <div class="form-group">
-          <label for="form-source">Source</label>
-          <select id="form-source" required>
-            <option value="store">Store</option>
-            <option value="online">Online</option>
-            <option value="market">Market</option>
-          </select>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="form-source">Source Type</label>
+            <select id="form-source" required>
+              <option value="store">Store</option>
+              <option value="online">Online</option>
+              <option value="market">Market</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="form-store-name">Store Name</label>
+            <div class="store-name-wrap">
+              <select id="form-store-name">
+                <option value="">-- Select store --</option>
+              </select>
+              <button type="button" class="btn-add-store" onclick="addNewStore()" aria-label="Add new store" title="Add new store">+</button>
+            </div>
+          </div>
         </div>
         <div class="form-group">
           <label for="form-notes">Notes (optional)</label>
@@ -671,13 +703,19 @@ let monthlyChart = null;
 let rates = { gbp: 1, eur: 1.17, usd: 1.26 };
 let ratesLive = false;
 
+// Store names list (persisted in localStorage)
+let storeNames = [];
+
 /* ===== Init ===== */
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
   showLoader(true);
+  loadStoreNames();
   // Fetch rates and data in parallel
   const [ratesResult] = await Promise.allSettled([fetchRates(), loadData()]);
+  // Collect any store names from existing purchases
+  syncStoreNamesFromPurchases();
   showLoader(false);
   renderAll();
 }
@@ -722,6 +760,55 @@ function saveToStorage() {
   } catch (e) {
     console.warn('Could not save to localStorage:', e);
   }
+}
+
+/* ===== Store Names ===== */
+function loadStoreNames() {
+  try {
+    const saved = localStorage.getItem('poketracker_stores');
+    if (saved) storeNames = JSON.parse(saved);
+    if (!Array.isArray(storeNames)) storeNames = [];
+  } catch (e) { storeNames = []; }
+}
+
+function saveStoreNames() {
+  try {
+    localStorage.setItem('poketracker_stores', JSON.stringify(storeNames));
+  } catch (e) {}
+}
+
+function syncStoreNamesFromPurchases() {
+  purchases.forEach(p => {
+    if (p.store_name && !storeNames.includes(p.store_name)) {
+      storeNames.push(p.store_name);
+    }
+  });
+  storeNames.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+  saveStoreNames();
+}
+
+function populateStoreDropdown(selectedValue) {
+  const sel = document.getElementById('form-store-name');
+  sel.innerHTML = '<option value="">-- Select store --</option>';
+  storeNames.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  });
+  if (selectedValue) sel.value = selectedValue;
+}
+
+function addNewStore() {
+  const name = prompt('Enter new store name:');
+  if (!name || !name.trim()) return;
+  const trimmed = name.trim();
+  if (!storeNames.includes(trimmed)) {
+    storeNames.push(trimmed);
+    storeNames.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    saveStoreNames();
+  }
+  populateStoreDropdown(trimmed);
 }
 
 async function fetchRates() {
@@ -967,6 +1054,7 @@ function renderTable() {
       <td>${currencySymbol()}${unitPrice.toFixed(2)}</td>
       <td><strong>${currencySymbol()}${lineTotal.toFixed(2)}</strong></td>
       <td><span class="source-badge ${entry.source}">${entry.source}</span></td>
+      <td>${entry.store_name ? `<span class="store-tag" title="${escapeHtml(entry.store_name)}">${escapeHtml(entry.store_name)}</span>` : '<span class="store-tag">-</span>'}</td>
       <td>
         <div class="actions-cell">
           <button type="button" class="btn-icon" onclick="openEditModal('${entry.id}')" aria-label="Edit ${escapeHtml(entry.item)}">
@@ -1050,6 +1138,7 @@ function openAddModal() {
   document.getElementById('form-notes').value = '';
   document.getElementById('form-auto-calc').textContent = '';
   document.getElementById('form-currency-symbol').innerHTML = '&pound;';
+  populateStoreDropdown('');
   openModal();
 }
 
@@ -1068,6 +1157,7 @@ function openEditModal(id) {
   document.getElementById('form-source').value = entry.source;
   document.getElementById('form-notes').value = entry.notes || '';
   document.getElementById('form-currency-symbol').innerHTML = '&pound;';
+  populateStoreDropdown(entry.store_name || '');
   recalcPrice();
   openModal();
 }
@@ -1156,6 +1246,7 @@ function savePurchase(e) {
     price_eur: parseFloat((gbp * rates.eur).toFixed(2)),
     price_usd: parseFloat((gbp * rates.usd).toFixed(2)),
     source: document.getElementById('form-source').value,
+    store_name: document.getElementById('form-store-name').value || '',
     notes: document.getElementById('form-notes').value.trim(),
   };
 

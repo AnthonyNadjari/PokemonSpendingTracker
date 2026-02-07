@@ -8,6 +8,7 @@
     "price_eur": 169.65,
     "price_usd": 182.70,
     "source": "online",
+    "store_name": "TCGPlayer",
     "notes": "Near mint condition, great deal"
   },
   {
@@ -19,6 +20,7 @@
     "price_eur": 29.25,
     "price_usd": 31.50,
     "source": "market",
+    "store_name": "Camden Market",
     "notes": "Fun novelty cards from local market"
   },
   {
@@ -30,6 +32,7 @@
     "price_eur": 222.29,
     "price_usd": 239.39,
     "source": "store",
+    "store_name": "Pokemon Center",
     "notes": ""
   },
   {
@@ -41,6 +44,7 @@
     "price_eur": 91.85,
     "price_usd": 98.91,
     "source": "online",
+    "store_name": "eBay",
     "notes": "Graded PSA 9"
   },
   {
@@ -52,6 +56,7 @@
     "price_eur": 45.62,
     "price_usd": 49.13,
     "source": "store",
+    "store_name": "Smyths",
     "notes": "Elite Trainer Boxes with promos"
   },
   {
@@ -63,6 +68,7 @@
     "price_eur": 37.44,
     "price_usd": 40.32,
     "source": "market",
+    "store_name": "",
     "notes": ""
   },
   {
@@ -74,6 +80,7 @@
     "price_eur": 26.33,
     "price_usd": 28.35,
     "source": "store",
+    "store_name": "Pokemon Center",
     "notes": "10-pack bundles on sale"
   }
 ]
