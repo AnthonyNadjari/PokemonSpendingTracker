@@ -1260,6 +1260,7 @@ function savePurchase(e) {
   }
 
   saveToStorage();
+  syncStoreNamesFromPurchases();
   closeModal();
   currentPage = 1;
   renderAll();
@@ -1326,6 +1327,7 @@ function importJSON(event) {
       });
       purchases = data;
       saveToStorage();
+      syncStoreNamesFromPurchases();
       currentPage = 1;
       renderAll();
       showToast('Imported ' + data.length + ' purchase' + (data.length !== 1 ? 's' : ''));
