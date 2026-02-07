@@ -3,8 +3,10 @@
     "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     "date": "2025-12-15",
     "item": "Charizard VMAX Alt Art",
+    "quantity": 1,
     "price_gbp": 145.00,
     "price_eur": 169.65,
+    "price_usd": 182.70,
     "source": "online",
     "notes": "Near mint condition, great deal"
   },
@@ -12,17 +14,21 @@
     "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
     "date": "2026-01-03",
     "item": "Pikachu Illustrator Proxy",
+    "quantity": 2,
     "price_gbp": 25.00,
     "price_eur": 29.25,
+    "price_usd": 31.50,
     "source": "market",
-    "notes": "Fun novelty card from local market"
+    "notes": "Fun novelty cards from local market"
   },
   {
     "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
     "date": "2026-01-10",
     "item": "Evolving Skies Booster Box",
+    "quantity": 1,
     "price_gbp": 189.99,
     "price_eur": 222.29,
+    "price_usd": 239.39,
     "source": "store",
     "notes": ""
   },
@@ -30,8 +36,10 @@
     "id": "d4e5f6a7-b8c9-0123-defa-234567890123",
     "date": "2026-01-18",
     "item": "Umbreon VMAX Secret Rare",
+    "quantity": 1,
     "price_gbp": 78.50,
     "price_eur": 91.85,
+    "price_usd": 98.91,
     "source": "online",
     "notes": "Graded PSA 9"
   },
@@ -39,17 +47,21 @@
     "id": "e5f6a7b8-c9d0-1234-efab-345678901234",
     "date": "2026-01-25",
     "item": "Scarlet & Violet ETB",
+    "quantity": 3,
     "price_gbp": 38.99,
     "price_eur": 45.62,
+    "price_usd": 49.13,
     "source": "store",
-    "notes": "Elite Trainer Box with promos"
+    "notes": "Elite Trainer Boxes with promos"
   },
   {
     "id": "f6a7b8c9-d0e1-2345-fabc-456789012345",
     "date": "2026-02-01",
     "item": "Mew VMAX Full Art",
+    "quantity": 1,
     "price_gbp": 32.00,
     "price_eur": 37.44,
+    "price_usd": 40.32,
     "source": "market",
     "notes": ""
   },
@@ -57,9 +69,11 @@
     "id": "a7b8c9d0-e1f2-3456-abcd-567890123456",
     "date": "2026-02-05",
     "item": "Obsidian Flames Booster Bundle",
+    "quantity": 4,
     "price_gbp": 22.50,
     "price_eur": 26.33,
+    "price_usd": 28.35,
     "source": "store",
-    "notes": "10-pack bundle on sale"
+    "notes": "10-pack bundles on sale"
   }
 ]
