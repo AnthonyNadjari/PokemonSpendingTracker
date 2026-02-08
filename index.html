@@ -657,6 +657,25 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
 }
 .filter-row select:focus{outline:none;border-color:var(--red)}
 
+/* Mobile sort row (visible when table headers are hidden) */
+.ct-sort-mobile{
+  display:none;
+  align-items:center;gap:10px;margin-bottom:12px;
+}
+.ct-sort-mobile label{font-size:0.85rem;font-weight:600;color:var(--text-secondary)}
+.ct-sort-mobile select{
+  flex:1;min-width:0;max-width:220px;
+  background:var(--bg-secondary);border:1px solid var(--border-color);
+  border-radius:var(--radius-sm);padding:8px 32px 8px 12px;
+  font-size:0.85rem;color:var(--text-primary);cursor:pointer;
+  appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;
+}
+@media(max-width:640px){
+  .ct-sort-mobile{display:flex}
+}
+
 @media(max-width:900px){
   .ct-dashboard{grid-template-columns:repeat(2,1fr)}
   .pull-rate-cards{grid-template-columns:1fr 1fr}
@@ -703,9 +722,9 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
         <button type="button" id="btn-eur" role="radio" aria-checked="false" onclick="setCurrency('eur')">€ EUR</button>
         <button type="button" id="btn-usd" role="radio" aria-checked="false" onclick="setCurrency('usd')">$ USD</button>
       </div>
-      <button type="button" class="btn btn-primary" onclick="openAddModal()" aria-label="Add purchase">
+      <button type="button" class="btn btn-primary" id="header-add-btn" onclick="headerAddAction()" aria-label="Add purchase">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Add Purchase
+        <span id="header-add-label">Add Purchase</span>
       </button>
     </div>
   </div>
@@ -930,6 +949,25 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input type="text" id="ct-search" placeholder="Search by series or cover..." aria-label="Search cards" oninput="renderCardTable()">
       </div>
+    </div>
+
+    <!-- Mobile sort (visible on small screens when table headers are hidden) -->
+    <div class="ct-sort-mobile" aria-label="Sort cards">
+      <label for="ct-sort-select">Sort by</label>
+      <select id="ct-sort-select" onchange="ctSortFromMobile(this)" aria-label="Sort order">
+        <option value="date-desc">Date (newest first)</option>
+        <option value="date-asc">Date (oldest first)</option>
+        <option value="series-asc">Series A–Z</option>
+        <option value="series-desc">Series Z–A</option>
+        <option value="weight-desc">Weight (high first)</option>
+        <option value="weight-asc">Weight (low first)</option>
+        <option value="cover-asc">Cover A–Z</option>
+        <option value="cover-desc">Cover Z–A</option>
+        <option value="rare-desc">Rare first</option>
+        <option value="rare-asc">No rare first</option>
+        <option value="bipped-desc">Bipped first</option>
+        <option value="bipped-asc">No bip first</option>
+      </select>
     </div>
 
     <!-- Table -->
@@ -1217,6 +1255,7 @@ document.addEventListener('DOMContentLoaded', init);
 async function init() {
   updateThemeButton();
   updateThemeColor();
+  updateHeaderAddButton('spending');
   showLoader(true);
   loadStoreNames();
   // Fetch rates and data in parallel
@@ -1939,12 +1978,33 @@ async function initCardTracker() {
 }
 
 async function loadCardEntries() {
-  // Try localStorage first
+  const existingIds = new Set();
   try {
     const saved = localStorage.getItem('poketracker_cards');
     if (saved) {
       cardEntries = JSON.parse(saved);
-      if (Array.isArray(cardEntries) && cardEntries.length > 0) return;
+      if (Array.isArray(cardEntries) && cardEntries.length > 0) {
+        cardEntries.forEach(c => existingIds.add(c.id));
+        // Merge any new entries from seed file (e.g. Zacian, Bellibolt)
+        try {
+          const res = await fetch('./card_data.json');
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data)) {
+              let merged = false;
+              data.forEach(entry => {
+                if (entry && entry.id && !existingIds.has(entry.id)) {
+                  cardEntries.push(entry);
+                  existingIds.add(entry.id);
+                  merged = true;
+                }
+              });
+              if (merged) saveCardEntries();
+            }
+          }
+        } catch(e) { /* ignore */ }
+        return;
+      }
     }
   } catch(e) { /* fall through */ }
   // Fall back to card_data.json seed file
@@ -1983,8 +2043,31 @@ function switchMainTab(tab) {
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
+  updateHeaderAddButton(tab);
   if (tab === 'cards') {
     renderCardAll();
+  }
+}
+
+function headerAddAction() {
+  const activeTab = document.querySelector('.main-tab.active');
+  if (activeTab && activeTab.dataset.tab === 'cards') {
+    openCardModal();
+  } else {
+    openAddModal();
+  }
+}
+
+function updateHeaderAddButton(tab) {
+  const btn = document.getElementById('header-add-btn');
+  const label = document.getElementById('header-add-label');
+  if (!btn || !label) return;
+  if (tab === 'cards') {
+    label.textContent = 'Add Card Entry';
+    btn.setAttribute('aria-label', 'Add card entry');
+  } else {
+    label.textContent = 'Add Purchase';
+    btn.setAttribute('aria-label', 'Add purchase');
   }
 }
 
@@ -2050,10 +2133,22 @@ function updateCardDataLists() {
 }
 
 /* ===== Card Table ===== */
+function ctSortFromMobile(selectEl) {
+  const v = (selectEl && selectEl.value) || 'date-desc';
+  const [col, dir] = v.split('-');
+  ctSortCol = col;
+  ctSortDir = dir || 'desc';
+  updateSortHeaders('ct-table', ctSortCol, ctSortDir);
+  ctPage = 1;
+  renderCardTable();
+}
+
 function sortCards(col, thEl) {
   if (ctSortCol === col) { ctSortDir = ctSortDir === 'asc' ? 'desc' : 'asc'; }
   else { ctSortCol = col; ctSortDir = (col === 'date') ? 'desc' : 'asc'; }
   updateSortHeaders('ct-table', ctSortCol, ctSortDir);
+  const sel = document.getElementById('ct-sort-select');
+  if (sel) sel.value = ctSortCol + '-' + ctSortDir;
   ctPage = 1;
   renderCardTable();
 }
@@ -2113,6 +2208,9 @@ function renderCardTable() {
   }
   noResults.style.display = 'none';
   tableEl.style.display = 'table';
+
+  const sortSel = document.getElementById('ct-sort-select');
+  if (sortSel) sortSel.value = ctSortCol + '-' + ctSortDir;
 
   const totalPages = Math.ceil(filtered.length / CT_PAGE_SIZE);
   if (ctPage > totalPages) ctPage = totalPages;
