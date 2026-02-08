@@ -427,6 +427,99 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
   .dashboard{grid-template-columns:1fr}
   .header-actions{width:100%;justify-content:space-between}
 }
+
+/* Main Tab Navigation */
+.main-tabs{
+  display:flex;gap:0;padding-top:0;padding-bottom:0;
+  border-bottom:1px solid var(--border-color);
+  position:relative;z-index:1;
+}
+.main-tab{
+  padding:14px 28px;background:none;border:none;
+  border-bottom:3px solid transparent;color:var(--text-secondary);
+  font-family:var(--font-display);font-weight:700;font-size:0.95rem;
+  cursor:pointer;transition:var(--transition);
+  display:flex;align-items:center;gap:8px;
+}
+.main-tab:hover{color:var(--text-primary)}
+.main-tab.active{color:var(--red);border-bottom-color:var(--red)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* Sub-tabs */
+.sub-tabs{
+  display:flex;gap:4px;margin-bottom:20px;
+  background:var(--bg-secondary);border:1px solid var(--border-color);
+  border-radius:var(--radius);padding:4px;width:fit-content;
+}
+.sub-tab{
+  padding:8px 20px;border-radius:var(--radius-sm);border:none;
+  background:transparent;color:var(--text-secondary);
+  font-family:var(--font-body);font-weight:600;font-size:0.85rem;
+  cursor:pointer;transition:var(--transition);
+}
+.sub-tab:hover{color:var(--text-primary)}
+.sub-tab.active{background:var(--red);color:#fff}
+.sub-content{display:none}
+.sub-content.active{display:block}
+
+/* Card Tracker specific */
+.ct-dashboard{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding:24px 0;
+}
+.ct-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 0 0;flex-wrap:wrap;gap:12px;
+}
+.ct-header h2{
+  font-family:var(--font-display);font-weight:700;font-size:1.3rem;margin:0;
+}
+.ct-checkbox-row{display:flex;gap:24px;margin-bottom:18px}
+.ct-checkbox{
+  display:flex;align-items:center;gap:8px;cursor:pointer;
+  font-size:0.9rem;color:var(--text-primary);user-select:none;
+}
+.ct-checkbox input[type="checkbox"]{
+  width:18px;height:18px;accent-color:var(--red);cursor:pointer;
+}
+.pull-rate-cards{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px;
+}
+.weight-cell{font-variant-numeric:tabular-nums;font-family:var(--font-body)}
+.badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:3px 10px;border-radius:50px;font-size:0.75rem;font-weight:600;
+}
+.badge-yes{background:rgba(16,185,129,0.12);color:var(--market-color)}
+.badge-no{background:rgba(139,92,246,0.06);color:var(--text-muted)}
+.badge-bipped{background:rgba(255,203,5,0.12);color:var(--yellow)}
+.filter-row{
+  display:flex;gap:12px;margin-bottom:16px;align-items:center;flex-wrap:wrap;
+}
+.filter-row select{
+  background:var(--bg-secondary);border:1px solid var(--border-color);
+  border-radius:var(--radius-sm);padding:8px 32px 8px 12px;color:var(--text-primary);
+  font-family:var(--font-body);font-size:0.85rem;min-height:40px;
+  cursor:pointer;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;
+  transition:var(--transition);
+}
+.filter-row select:focus{outline:none;border-color:var(--red)}
+
+@media(max-width:900px){
+  .ct-dashboard{grid-template-columns:repeat(2,1fr)}
+  .pull-rate-cards{grid-template-columns:1fr 1fr}
+}
+@media(max-width:640px){
+  .ct-dashboard{grid-template-columns:1fr 1fr;gap:10px}
+  .pull-rate-cards{grid-template-columns:1fr}
+  .main-tab{padding:10px 16px;font-size:0.85rem}
+  .filter-row{flex-direction:column;align-items:stretch}
+}
+@media(max-width:400px){
+  .ct-dashboard{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
@@ -458,6 +551,20 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
   </div>
 </header>
 
+<!-- Main Navigation Tabs -->
+<nav class="main-tabs container" role="tablist" aria-label="Main navigation">
+  <button type="button" class="main-tab active" data-tab="spending" role="tab" aria-selected="true" onclick="switchMainTab('spending')">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+    Spending
+  </button>
+  <button type="button" class="main-tab" data-tab="cards" role="tab" aria-selected="false" onclick="switchMainTab('cards')">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M8 7v10M12 7v10M16 7v10"/></svg>
+    Card Tracker
+  </button>
+</nav>
+
+<!-- Spending Tracker Tab -->
+<div id="tab-spending" class="tab-content active">
 <main class="container">
 
   <!-- Rate Status Bar -->
@@ -595,8 +702,154 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
     <input type="file" accept=".json,application/json" style="display:none" onchange="importJSON(event)" aria-label="Import JSON file">
   </label>
 </footer>
+</div><!-- end tab-spending -->
 
-<!-- Add/Edit Modal -->
+<!-- Card Tracker Tab -->
+<div id="tab-cards" class="tab-content">
+<main class="container">
+
+  <!-- Card Tracker Header -->
+  <div class="ct-header">
+    <h2>Card Weight & Pull Rate Tracker</h2>
+    <button type="button" class="btn btn-primary" onclick="openCardModal()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Card Entry
+    </button>
+  </div>
+
+  <!-- Card Tracker Dashboard -->
+  <section class="ct-dashboard" aria-label="Card tracking summary">
+    <div class="card">
+      <div class="card-icon blue" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12V8H6a2 2 0 110-4h12V0"/><path d="M20 12v4H6a2 2 0 100 4h12v4"/></svg>
+      </div>
+      <div class="card-label">Total Packs</div>
+      <div class="card-value" id="ct-total-packs">0</div>
+      <div class="card-sub" id="ct-total-packs-sub">packs opened</div>
+    </div>
+    <div class="card">
+      <div class="card-icon yellow" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      </div>
+      <div class="card-label">Series Tracked</div>
+      <div class="card-value" id="ct-series-count">0</div>
+      <div class="card-sub" id="ct-series-count-sub">unique series</div>
+    </div>
+    <div class="card">
+      <div class="card-icon green" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      </div>
+      <div class="card-label">Pull Rate</div>
+      <div class="card-value" id="ct-pull-rate">0%</div>
+      <div class="card-sub" id="ct-pull-rate-sub">rare card rate</div>
+    </div>
+    <div class="card">
+      <div class="card-icon red" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      </div>
+      <div class="card-label">Avg Weight</div>
+      <div class="card-value" id="ct-avg-weight">0g</div>
+      <div class="card-sub" id="ct-avg-weight-sub">per pack</div>
+    </div>
+  </section>
+
+  <!-- Sub-tabs -->
+  <div class="sub-tabs" role="tablist">
+    <button type="button" class="sub-tab active" role="tab" onclick="switchCardSubTab('all-cards',this)">All Cards</button>
+    <button type="button" class="sub-tab" role="tab" onclick="switchCardSubTab('pull-rates',this)">Pull Rates</button>
+  </div>
+
+  <!-- All Cards Sub-tab -->
+  <div id="sub-all-cards" class="sub-content active">
+    <!-- Filter -->
+    <div class="filter-row">
+      <select id="ct-series-filter" onchange="renderCardTable()" aria-label="Filter by series">
+        <option value="all">All Series</option>
+      </select>
+      <div class="search-wrap" style="flex:1;min-width:180px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="ct-search" placeholder="Search by series or cover..." aria-label="Search cards" oninput="renderCardTable()">
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table id="ct-table" aria-label="Card entries list">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Series</th>
+              <th>Weight</th>
+              <th>Cover</th>
+              <th>Bipped</th>
+              <th>Had Rare</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="ct-table-body"></tbody>
+        </table>
+      </div>
+      <div id="ct-empty" class="empty-state" style="display:none">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="50" cy="50" r="48" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+          <rect x="2" y="48" width="96" height="4" fill="currentColor" opacity="0.3"/>
+          <circle cx="50" cy="50" r="12" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+        </svg>
+        <h3>No card entries yet</h3>
+        <p>Add your first card entry to start tracking weights and pull rates!</p>
+        <button type="button" class="btn btn-primary" onclick="openCardModal()">Add Card Entry</button>
+      </div>
+      <div id="ct-no-results" class="empty-state" style="display:none">
+        <h3>No matching entries</h3>
+        <p>Try adjusting your search or filter.</p>
+      </div>
+      <div id="ct-pagination" class="pagination"></div>
+    </div>
+  </div>
+
+  <!-- Pull Rates Sub-tab -->
+  <div id="sub-pull-rates" class="sub-content">
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table id="ct-pull-table" aria-label="Pull rates by series">
+          <thead>
+            <tr>
+              <th>Series</th>
+              <th>Total Packs</th>
+              <th>Rare Count</th>
+              <th>Avg Weight</th>
+              <th>Pull Rate</th>
+            </tr>
+          </thead>
+          <tbody id="ct-pull-body"></tbody>
+        </table>
+      </div>
+      <div id="ct-pull-empty" class="empty-state" style="display:none">
+        <h3>No data available</h3>
+        <p>Add some card entries to see pull rate analytics.</p>
+      </div>
+    </div>
+    <div class="pull-rate-cards" id="ct-pull-summary"></div>
+  </div>
+
+</main>
+
+<!-- Card Tracker Footer -->
+<footer class="footer container">
+  <button type="button" class="btn btn-secondary" onclick="exportCardJSON()" aria-label="Export card entries">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Export Cards JSON
+  </button>
+  <label class="btn btn-secondary" tabindex="0" role="button" style="cursor:pointer" onkeydown="if(event.key==='Enter')this.querySelector('input').click()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    Import Cards JSON
+    <input type="file" accept=".json,application/json" style="display:none" onchange="importCardJSON(event)" aria-label="Import card entries file">
+  </label>
+</footer>
+</div><!-- end tab-cards -->
+
+<!-- Add/Edit Modal (Spending) -->
 <div class="modal-overlay" id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
   <div class="modal">
     <div class="modal-header">
@@ -682,6 +935,63 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
   </div>
 </div>
 
+<!-- Card Entry Modal -->
+<div class="modal-overlay" id="card-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="card-modal-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="card-modal-title">Add Card Entry</h2>
+      <button type="button" class="btn-icon" onclick="closeCardModal()" aria-label="Close modal">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form id="card-form" onsubmit="saveCardEntry(event)">
+        <input type="hidden" id="card-form-id" value="">
+        <div class="form-group">
+          <label for="card-form-series">Series</label>
+          <input type="text" id="card-form-series" list="series-datalist" placeholder="Type or select a series..." required>
+          <datalist id="series-datalist"></datalist>
+        </div>
+        <div class="form-group">
+          <label for="card-form-weight">Weight (grams)</label>
+          <input type="number" id="card-form-weight" step="0.001" min="0" placeholder="0.000" required>
+        </div>
+        <div class="form-group">
+          <label for="card-form-cover">Cover Picture / Pokemon Name</label>
+          <input type="text" id="card-form-cover" list="cover-datalist" placeholder="Type or select...">
+          <datalist id="cover-datalist"></datalist>
+        </div>
+        <div class="ct-checkbox-row">
+          <label class="ct-checkbox">
+            <input type="checkbox" id="card-form-bipped">
+            Bipped (metal detector)
+          </label>
+          <label class="ct-checkbox">
+            <input type="checkbox" id="card-form-rare">
+            Had Rare Card
+          </label>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="closeCardModal()">Cancel</button>
+      <button type="submit" class="btn btn-primary" form="card-form" id="card-form-submit">Add Entry</button>
+    </div>
+  </div>
+</div>
+
+<!-- Card Delete Confirm -->
+<div class="confirm-overlay" id="card-confirm-overlay" role="alertdialog" aria-modal="true">
+  <div class="confirm-dialog">
+    <h3>Delete Card Entry?</h3>
+    <p id="card-confirm-desc">This action cannot be undone.</p>
+    <div class="btn-row">
+      <button type="button" class="btn btn-secondary" onclick="closeCardConfirm()">Cancel</button>
+      <button type="button" class="btn btn-danger" id="card-confirm-delete-btn">Delete</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -718,6 +1028,7 @@ async function init() {
   syncStoreNamesFromPurchases();
   showLoader(false);
   renderAll();
+  initCardTracker();
 }
 
 async function loadData() {
@@ -1179,7 +1490,11 @@ document.getElementById('modal-overlay').addEventListener('click', function(e) {
 
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
-    if (document.getElementById('confirm-overlay').classList.contains('open')) {
+    if (document.getElementById('card-confirm-overlay').classList.contains('open')) {
+      closeCardConfirm();
+    } else if (document.getElementById('card-modal-overlay').classList.contains('open')) {
+      closeCardModal();
+    } else if (document.getElementById('confirm-overlay').classList.contains('open')) {
       closeConfirm();
     } else if (document.getElementById('modal-overlay').classList.contains('open')) {
       closeModal();
@@ -1346,6 +1661,422 @@ function showToast(msg) {
   toast.classList.add('show');
   clearTimeout(toast._timeout);
   toast._timeout = setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+/* ============================================================
+   CARD TRACKER MODULE
+   ============================================================ */
+
+/* ===== Card Tracker State ===== */
+let cardEntries = [];
+let cardSeriesList = [];
+let ctPage = 1;
+const CT_PAGE_SIZE = 20;
+let ctEditingId = null;
+let ctDeleteTargetId = null;
+
+/* ===== Card Tracker Init ===== */
+function initCardTracker() {
+  loadCardEntries();
+  loadCardSeries();
+  renderCardAll();
+
+  // Card modal overlay click-to-close
+  document.getElementById('card-modal-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closeCardModal();
+  });
+
+  // Card confirm overlay click-to-close
+  document.getElementById('card-confirm-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closeCardConfirm();
+  });
+
+  // Card confirm delete button
+  document.getElementById('card-confirm-delete-btn').addEventListener('click', function() {
+    if (ctDeleteTargetId) {
+      cardEntries = cardEntries.filter(c => c.id !== ctDeleteTargetId);
+      saveCardEntries();
+      showToast('Card entry deleted');
+      closeCardConfirm();
+      renderCardAll();
+    }
+  });
+}
+
+function loadCardEntries() {
+  try {
+    const saved = localStorage.getItem('poketracker_cards');
+    if (saved) {
+      cardEntries = JSON.parse(saved);
+      if (!Array.isArray(cardEntries)) cardEntries = [];
+    }
+  } catch(e) { cardEntries = []; }
+}
+
+function saveCardEntries() {
+  try {
+    localStorage.setItem('poketracker_cards', JSON.stringify(cardEntries));
+  } catch(e) { console.warn('Could not save card entries:', e); }
+}
+
+function loadCardSeries() {
+  const seriesSet = new Set();
+  cardEntries.forEach(c => { if (c.series) seriesSet.add(c.series); });
+  cardSeriesList = [...seriesSet].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+}
+
+/* ===== Main Tab Switching ===== */
+function switchMainTab(tab) {
+  document.querySelectorAll('.main-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === tab);
+    t.setAttribute('aria-selected', t.dataset.tab === tab);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (tab === 'cards') {
+    renderCardAll();
+  }
+}
+
+/* ===== Card Sub-tab Switching ===== */
+function switchCardSubTab(tab, el) {
+  document.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.sub-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('sub-' + tab).classList.add('active');
+}
+
+/* ===== Card Tracker Render All ===== */
+function renderCardAll() {
+  loadCardSeries();
+  renderCardDashboard();
+  updateCardDataLists();
+  renderCardTable();
+  renderPullRates();
+}
+
+/* ===== Card Dashboard ===== */
+function renderCardDashboard() {
+  const totalPacks = cardEntries.length;
+  const seriesCount = new Set(cardEntries.map(c => c.series)).size;
+  const rareCount = cardEntries.filter(c => c.had_rare).length;
+  const pullRate = totalPacks > 0 ? ((rareCount / totalPacks) * 100).toFixed(1) : '0.0';
+  const avgWeight = totalPacks > 0 ? (cardEntries.reduce((s, c) => s + (c.weight || 0), 0) / totalPacks).toFixed(3) : '0.000';
+
+  document.getElementById('ct-total-packs').textContent = totalPacks;
+  document.getElementById('ct-total-packs-sub').textContent = totalPacks === 1 ? '1 pack opened' : totalPacks + ' packs opened';
+  document.getElementById('ct-series-count').textContent = seriesCount;
+  document.getElementById('ct-series-count-sub').textContent = seriesCount === 1 ? '1 unique series' : seriesCount + ' unique series';
+  document.getElementById('ct-pull-rate').textContent = pullRate + '%';
+  document.getElementById('ct-pull-rate-sub').textContent = rareCount + ' rare' + (rareCount !== 1 ? 's' : '') + ' found';
+  document.getElementById('ct-avg-weight').textContent = avgWeight + 'g';
+  document.getElementById('ct-avg-weight-sub').textContent = 'per pack average';
+}
+
+/* ===== Update Datalists ===== */
+function updateCardDataLists() {
+  // Series datalist
+  const seriesDl = document.getElementById('series-datalist');
+  seriesDl.innerHTML = cardSeriesList.map(s => '<option value="' + escapeHtml(s) + '">').join('');
+
+  // Cover picture datalist
+  const covers = [...new Set(cardEntries.map(c => c.cover_picture).filter(Boolean))].sort(
+    (a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' })
+  );
+  const coverDl = document.getElementById('cover-datalist');
+  coverDl.innerHTML = covers.map(c => '<option value="' + escapeHtml(c) + '">').join('');
+
+  // Series filter dropdown
+  const sel = document.getElementById('ct-series-filter');
+  const currentVal = sel.value;
+  sel.innerHTML = '<option value="all">All Series</option>';
+  cardSeriesList.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s;
+    opt.textContent = s;
+    sel.appendChild(opt);
+  });
+  sel.value = currentVal || 'all';
+}
+
+/* ===== Card Table ===== */
+function getFilteredCards() {
+  let list = [...cardEntries];
+  const seriesFilter = document.getElementById('ct-series-filter').value;
+  const search = (document.getElementById('ct-search').value || '').toLowerCase().trim();
+
+  if (seriesFilter !== 'all') list = list.filter(c => c.series === seriesFilter);
+  if (search) list = list.filter(c =>
+    (c.cover_picture || '').toLowerCase().includes(search) ||
+    (c.series || '').toLowerCase().includes(search)
+  );
+
+  list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  return list;
+}
+
+function renderCardTable() {
+  const filtered = getFilteredCards();
+  const tbody = document.getElementById('ct-table-body');
+  const tableEl = document.getElementById('ct-table');
+  const emptyEl = document.getElementById('ct-empty');
+  const noResults = document.getElementById('ct-no-results');
+  const pagEl = document.getElementById('ct-pagination');
+
+  if (cardEntries.length === 0) {
+    tableEl.style.display = 'none';
+    pagEl.style.display = 'none';
+    noResults.style.display = 'none';
+    emptyEl.style.display = 'block';
+    return;
+  }
+  emptyEl.style.display = 'none';
+
+  if (filtered.length === 0) {
+    tableEl.style.display = 'none';
+    pagEl.style.display = 'none';
+    noResults.style.display = 'block';
+    return;
+  }
+  noResults.style.display = 'none';
+  tableEl.style.display = 'table';
+
+  const totalPages = Math.ceil(filtered.length / CT_PAGE_SIZE);
+  if (ctPage > totalPages) ctPage = totalPages;
+  if (ctPage < 1) ctPage = 1;
+  const start = (ctPage - 1) * CT_PAGE_SIZE;
+  const pageItems = filtered.slice(start, start + CT_PAGE_SIZE);
+
+  tbody.innerHTML = pageItems.map(entry => {
+    const dateFormatted = new Date(entry.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    return '<tr>' +
+      '<td>' + dateFormatted + '</td>' +
+      '<td><strong>' + escapeHtml(entry.series) + '</strong></td>' +
+      '<td class="weight-cell">' + entry.weight.toFixed(3) + 'g</td>' +
+      '<td>' + (entry.cover_picture ? escapeHtml(entry.cover_picture) : '<span style="color:var(--text-muted)">-</span>') + '</td>' +
+      '<td>' + (entry.bipped ? '<span class="badge badge-bipped">Bipped</span>' : '<span class="badge badge-no">No</span>') + '</td>' +
+      '<td>' + (entry.had_rare ? '<span class="badge badge-yes">Rare</span>' : '<span class="badge badge-no">No</span>') + '</td>' +
+      '<td><div class="actions-cell">' +
+        '<button type="button" class="btn-icon" onclick="openEditCardModal(\'' + entry.id + '\')" aria-label="Edit entry">' +
+          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
+        '</button>' +
+        '<button type="button" class="btn-icon delete" onclick="confirmCardDelete(\'' + entry.id + '\')" aria-label="Delete entry">' +
+          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>' +
+        '</button>' +
+      '</div></td>' +
+    '</tr>';
+  }).join('');
+
+  // Pagination
+  if (totalPages <= 1) {
+    pagEl.style.display = 'none';
+  } else {
+    pagEl.style.display = 'flex';
+    let html = '<button type="button" ' + (ctPage === 1 ? 'disabled' : '') + ' onclick="ctGoToPage(' + (ctPage - 1) + ')">&laquo;</button>';
+    for (let i = 1; i <= totalPages; i++) {
+      if (totalPages > 7 && i > 2 && i < totalPages - 1 && Math.abs(i - ctPage) > 1) {
+        if (i === 3 || i === totalPages - 2) html += '<button type="button" disabled>...</button>';
+        continue;
+      }
+      html += '<button type="button" class="' + (i === ctPage ? 'active' : '') + '" onclick="ctGoToPage(' + i + ')">' + i + '</button>';
+    }
+    html += '<button type="button" ' + (ctPage === totalPages ? 'disabled' : '') + ' onclick="ctGoToPage(' + (ctPage + 1) + ')">&raquo;</button>';
+    pagEl.innerHTML = html;
+  }
+}
+
+function ctGoToPage(page) {
+  ctPage = page;
+  renderCardTable();
+  document.querySelector('#tab-cards .table-wrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ===== Pull Rates ===== */
+function renderPullRates() {
+  const seriesMap = {};
+  cardEntries.forEach(c => {
+    if (!seriesMap[c.series]) {
+      seriesMap[c.series] = { total: 0, rares: 0, totalWeight: 0 };
+    }
+    seriesMap[c.series].total++;
+    if (c.had_rare) seriesMap[c.series].rares++;
+    seriesMap[c.series].totalWeight += (c.weight || 0);
+  });
+
+  const seriesKeys = Object.keys(seriesMap).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+  const tbody = document.getElementById('ct-pull-body');
+  const emptyEl = document.getElementById('ct-pull-empty');
+  const tableEl = document.getElementById('ct-pull-table');
+
+  if (seriesKeys.length === 0) {
+    tableEl.style.display = 'none';
+    emptyEl.style.display = 'block';
+    document.getElementById('ct-pull-summary').innerHTML = '';
+    return;
+  }
+  emptyEl.style.display = 'none';
+  tableEl.style.display = 'table';
+
+  tbody.innerHTML = seriesKeys.map(s => {
+    const d = seriesMap[s];
+    const avgW = (d.totalWeight / d.total).toFixed(3);
+    const rate = ((d.rares / d.total) * 100).toFixed(2);
+    return '<tr>' +
+      '<td><strong>' + escapeHtml(s) + '</strong></td>' +
+      '<td>' + d.total + '</td>' +
+      '<td>' + d.rares + '</td>' +
+      '<td class="weight-cell">' + avgW + 'g</td>' +
+      '<td><span class="badge ' + (parseFloat(rate) > 0 ? 'badge-yes' : 'badge-no') + '">' + rate + '%</span></td>' +
+    '</tr>';
+  }).join('');
+
+  // Summary cards
+  const totalPacks = cardEntries.length;
+  const totalRares = cardEntries.filter(c => c.had_rare).length;
+  const overallRate = totalPacks > 0 ? ((totalRares / totalPacks) * 100).toFixed(2) : '0.00';
+
+  document.getElementById('ct-pull-summary').innerHTML =
+    '<div class="card"><div class="card-label">Total Series</div><div class="card-value">' + seriesKeys.length + '</div></div>' +
+    '<div class="card"><div class="card-label">Total Packs</div><div class="card-value">' + totalPacks + '</div></div>' +
+    '<div class="card"><div class="card-label">Overall Pull Rate</div><div class="card-value">' + overallRate + '%</div></div>';
+}
+
+/* ===== Card Modal ===== */
+function openCardModal() {
+  ctEditingId = null;
+  document.getElementById('card-modal-title').textContent = 'Add Card Entry';
+  document.getElementById('card-form-submit').textContent = 'Add Entry';
+  document.getElementById('card-form-id').value = '';
+  document.getElementById('card-form-series').value = '';
+  document.getElementById('card-form-weight').value = '';
+  document.getElementById('card-form-cover').value = '';
+  document.getElementById('card-form-bipped').checked = false;
+  document.getElementById('card-form-rare').checked = false;
+  updateCardDataLists();
+  document.getElementById('card-modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(function() { document.getElementById('card-form-series').focus(); }, 300);
+}
+
+function openEditCardModal(id) {
+  const entry = cardEntries.find(function(c) { return c.id === id; });
+  if (!entry) return;
+  ctEditingId = id;
+  document.getElementById('card-modal-title').textContent = 'Edit Card Entry';
+  document.getElementById('card-form-submit').textContent = 'Save Changes';
+  document.getElementById('card-form-id').value = entry.id;
+  document.getElementById('card-form-series').value = entry.series;
+  document.getElementById('card-form-weight').value = entry.weight;
+  document.getElementById('card-form-cover').value = entry.cover_picture || '';
+  document.getElementById('card-form-bipped').checked = entry.bipped;
+  document.getElementById('card-form-rare').checked = entry.had_rare;
+  updateCardDataLists();
+  document.getElementById('card-modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCardModal() {
+  document.getElementById('card-modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+/* ===== Save Card Entry ===== */
+function saveCardEntry(e) {
+  e.preventDefault();
+  const series = document.getElementById('card-form-series').value.trim();
+  const weight = parseFloat(document.getElementById('card-form-weight').value);
+  const cover = document.getElementById('card-form-cover').value.trim();
+  const bipped = document.getElementById('card-form-bipped').checked;
+  const rare = document.getElementById('card-form-rare').checked;
+
+  if (!series || isNaN(weight) || weight <= 0) {
+    showToast('Please enter a series and valid weight');
+    return;
+  }
+
+  const existingEntry = ctEditingId ? cardEntries.find(function(c) { return c.id === ctEditingId; }) : null;
+
+  const entry = {
+    id: ctEditingId || crypto.randomUUID(),
+    series: series,
+    weight: parseFloat(weight.toFixed(3)),
+    cover_picture: cover || null,
+    bipped: bipped,
+    had_rare: rare,
+    created_at: existingEntry ? existingEntry.created_at : new Date().toISOString()
+  };
+
+  if (ctEditingId) {
+    const idx = cardEntries.findIndex(function(c) { return c.id === ctEditingId; });
+    if (idx !== -1) cardEntries[idx] = entry;
+    showToast('Card entry updated');
+  } else {
+    cardEntries.push(entry);
+    showToast('Card entry added');
+  }
+
+  saveCardEntries();
+  closeCardModal();
+  ctPage = 1;
+  renderCardAll();
+}
+
+/* ===== Delete Card ===== */
+function confirmCardDelete(id) {
+  ctDeleteTargetId = id;
+  const entry = cardEntries.find(function(c) { return c.id === id; });
+  document.getElementById('card-confirm-desc').textContent = entry
+    ? 'Delete entry for "' + entry.series + '" (' + entry.weight + 'g)? This cannot be undone.'
+    : 'This action cannot be undone.';
+  document.getElementById('card-confirm-overlay').classList.add('open');
+  document.getElementById('card-confirm-delete-btn').focus();
+}
+
+function closeCardConfirm() {
+  document.getElementById('card-confirm-overlay').classList.remove('open');
+  ctDeleteTargetId = null;
+}
+
+/* ===== Card Export/Import ===== */
+function exportCardJSON() {
+  const blob = new Blob([JSON.stringify(cardEntries, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'card_entries.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Card entries exported');
+}
+
+function importCardJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!Array.isArray(data)) throw new Error('Invalid format');
+      // Basic validation
+      data.forEach(function(c) {
+        if (!c.id) c.id = crypto.randomUUID();
+        if (!c.created_at) c.created_at = new Date().toISOString();
+        if (c.bipped === undefined) c.bipped = false;
+        if (c.had_rare === undefined) c.had_rare = false;
+      });
+      cardEntries = data;
+      saveCardEntries();
+      ctPage = 1;
+      renderCardAll();
+      showToast('Imported ' + data.length + ' card entr' + (data.length !== 1 ? 'ies' : 'y'));
+    } catch(err) {
+      showToast('Error: Invalid JSON file');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
 }
 </script>
 </body>
