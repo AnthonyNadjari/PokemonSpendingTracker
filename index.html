@@ -1676,8 +1676,8 @@ let ctEditingId = null;
 let ctDeleteTargetId = null;
 
 /* ===== Card Tracker Init ===== */
-function initCardTracker() {
-  loadCardEntries();
+async function initCardTracker() {
+  await loadCardEntries();
   loadCardSeries();
   renderCardAll();
 
@@ -1703,14 +1703,29 @@ function initCardTracker() {
   });
 }
 
-function loadCardEntries() {
+async function loadCardEntries() {
+  // Try localStorage first
   try {
     const saved = localStorage.getItem('poketracker_cards');
     if (saved) {
       cardEntries = JSON.parse(saved);
-      if (!Array.isArray(cardEntries)) cardEntries = [];
+      if (Array.isArray(cardEntries) && cardEntries.length > 0) return;
     }
-  } catch(e) { cardEntries = []; }
+  } catch(e) { /* fall through */ }
+  // Fall back to card_data.json seed file
+  try {
+    const res = await fetch('./card_data.json');
+    if (!res.ok) throw new Error('No seed file');
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) {
+      cardEntries = data;
+      saveCardEntries();
+      return;
+    }
+  } catch(e) {
+    console.warn('Could not load card_data.json:', e);
+  }
+  cardEntries = [];
 }
 
 function saveCardEntries() {
