@@ -467,12 +467,45 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
   .dashboard{grid-template-columns:repeat(2,1fr)}
 }
 @media(max-width:640px){
-  .header-inner{gap:10px}
-  .logo-text{font-size:1.2rem}
+  /* --- Mobile Header --- */
+  .header{padding:12px 0}
+  .header-inner{
+    gap:8px;
+    display:grid;
+    grid-template-columns:1fr auto;
+    grid-template-rows:auto auto;
+    align-items:center;
+  }
+  .logo{grid-column:1;grid-row:1}
+  .logo svg{width:28px;height:28px}
+  .logo-text{font-size:1.15rem}
+  .header-actions{
+    grid-column:1 / -1;grid-row:2;
+    display:flex;align-items:center;gap:6px;
+    width:100%;justify-content:space-between;
+    padding-top:4px;
+  }
+  .theme-toggle{
+    grid-column:2;grid-row:1;
+    width:34px;height:34px;
+    position:static;
+  }
+  .theme-toggle svg{width:15px;height:15px}
+  .currency-toggle{padding:2px}
+  .currency-toggle button{padding:5px 10px;font-size:0.75rem;min-width:38px;min-height:30px}
+  .header-actions .btn-primary{
+    padding:8px 14px;font-size:0.8rem;
+    white-space:nowrap;flex-shrink:0;
+  }
+  .header-actions .btn-primary svg{width:14px;height:14px}
+
+  /* --- General --- */
   .dashboard{grid-template-columns:1fr 1fr;gap:10px}
-  .card{padding:16px}
-  .card-value{font-size:1.3rem}
-  .chart-container{height:220px}
+  .card{padding:14px}
+  .card-label{font-size:0.6rem}
+  .card-value{font-size:1.2rem}
+  .card-sub{font-size:0.65rem}
+  .chart-container{height:200px}
   .form-row,.form-row-3{grid-template-columns:1fr}
   .filter-bar{flex-direction:column;align-items:stretch}
   .search-wrap{min-width:unset}
@@ -480,35 +513,49 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
   .modal{max-width:100%;border-radius:14px 14px 0 0;max-height:95vh;align-self:flex-end}
   .modal-overlay{padding:0;align-items:flex-end}
   .footer{flex-direction:column}
+  .footer .btn{font-size:0.8rem;padding:10px 16px}
 
-  /* Mobile card layout for tables */
+  /* --- Mobile card layout for tables --- */
   table{min-width:unset !important}
   thead{display:none}
+  .table-scroll{overflow-x:visible}
   tbody tr{
-    display:block;padding:14px 16px;margin-bottom:0;
-    border-bottom:1px solid var(--border-color);
+    display:block;padding:16px;margin:8px 0;
+    border:1px solid var(--border-color);
+    border-radius:var(--radius);
+    background:var(--bg-secondary);
   }
-  tbody tr:last-child{border-bottom:none}
+  tbody tr:last-child{border-bottom:1px solid var(--border-color)}
   tbody td{
     display:flex;justify-content:space-between;align-items:center;
-    padding:5px 0;white-space:normal;border:none;font-size:0.85rem;
+    padding:6px 0;white-space:normal;border:none;font-size:0.85rem;
     gap:12px;
+  }
+  tbody td:not(:last-child){
+    border-bottom:1px solid var(--border-color);
+    padding-bottom:8px;margin-bottom:2px;
   }
   tbody td::before{
     content:attr(data-label);
-    font-weight:600;font-size:0.72rem;color:var(--text-secondary);
-    text-transform:uppercase;letter-spacing:0.04em;
-    flex-shrink:0;min-width:70px;
+    font-weight:600;font-size:0.7rem;color:var(--text-secondary);
+    text-transform:uppercase;letter-spacing:0.05em;
+    flex-shrink:0;min-width:65px;
   }
-  tbody td:last-child{padding-top:10px;justify-content:flex-end}
+  tbody td:last-child{
+    padding-top:12px;justify-content:flex-end;
+    border-bottom:none;margin-bottom:0;
+  }
   tbody td:last-child::before{display:none}
   td.item-cell{min-width:unset;max-width:unset}
-  .actions-cell{gap:8px}
-  .actions-cell .btn-icon{width:36px;height:36px;background:var(--bg-tertiary);border-radius:var(--radius-sm)}
+  .actions-cell{gap:10px}
+  .actions-cell .btn-icon{
+    width:38px;height:38px;
+    background:var(--bg-tertiary);border-radius:var(--radius-sm);
+    border:1px solid var(--border-color);
+  }
 }
 @media(max-width:400px){
   .dashboard{grid-template-columns:1fr}
-  .header-actions{width:100%;justify-content:space-between}
 }
 
 /* Main Tab Navigation */
@@ -598,7 +645,13 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
   .ct-dashboard{grid-template-columns:1fr 1fr;gap:10px}
   .pull-rate-cards{grid-template-columns:1fr}
   .main-tab{padding:10px 16px;font-size:0.85rem}
+  .main-tabs{border-bottom:2px solid var(--border-color)}
   .filter-row{flex-direction:column;align-items:stretch}
+  .ct-header{padding:14px 0 0}
+  .ct-header h2{font-size:1.1rem}
+  .ct-header .btn-primary{padding:8px 14px;font-size:0.8rem}
+  .sub-tabs{width:100%}
+  .sub-tab{flex:1;text-align:center;padding:8px 12px;font-size:0.8rem}
 }
 @media(max-width:400px){
   .ct-dashboard{grid-template-columns:1fr}
@@ -620,11 +673,11 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
       </svg>
       <div class="logo-text">Poke<span>Tracker</span></div>
     </div>
+    <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-label="Toggle light/dark mode" title="Toggle theme">
+      <svg id="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <svg id="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+    </button>
     <div class="header-actions">
-      <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-label="Toggle light/dark mode" title="Toggle theme">
-        <svg id="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-        <svg id="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-      </button>
       <div class="currency-toggle" role="radiogroup" aria-label="Currency selection">
         <button type="button" id="btn-gbp" class="active" role="radio" aria-checked="true" onclick="setCurrency('gbp')">£ GBP</button>
         <button type="button" id="btn-eur" role="radio" aria-checked="false" onclick="setCurrency('eur')">€ EUR</button>
