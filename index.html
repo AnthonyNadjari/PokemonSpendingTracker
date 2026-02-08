@@ -51,16 +51,56 @@ body{
   line-height:1.6;
   min-height:100vh;
   overflow-x:hidden;
+  transition:background 0.3s ease,color 0.3s ease;
 }
 body::before{
   content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.015'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  transition:opacity 0.3s ease;
 }
 body::after{
   content:'';position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.03;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Ccircle cx='40' cy='40' r='38' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Cline x1='2' y1='40' x2='78' y2='40' stroke='%23fff' stroke-width='2'/%3E%3Ccircle cx='40' cy='40' r='10' fill='none' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E");
   background-size:80px 80px;
+  transition:opacity 0.3s ease;
 }
+
+/* Light Mode */
+body.light-mode{
+  --bg-primary:#f5f6f8;
+  --bg-secondary:#ffffff;
+  --bg-tertiary:#f0f2f5;
+  --bg-hover:#e8eaed;
+  --border-color:#d0d7de;
+  --text-primary:#1f2328;
+  --text-secondary:#656d76;
+  --text-muted:#8b949e;
+  --shadow:0 2px 8px rgba(0,0,0,0.08);
+  --shadow-lg:0 8px 32px rgba(0,0,0,0.12);
+}
+body.light-mode::before{opacity:0}
+body.light-mode::after{opacity:0}
+body.light-mode .header{background:rgba(245,246,248,0.95)}
+body.light-mode .logo svg circle[stroke="#FF1C1C"]{stroke:#FF1C1C}
+body.light-mode .logo svg circle[fill="#0d1117"]{fill:#f5f6f8}
+body.light-mode .card:hover{border-color:rgba(255,28,28,0.15);box-shadow:0 0 20px rgba(255,28,28,0.04)}
+body.light-mode .chart-section{box-shadow:var(--shadow)}
+body.light-mode .table-wrap{box-shadow:var(--shadow)}
+body.light-mode .modal{box-shadow:var(--shadow-lg)}
+body.light-mode .modal-overlay{background:rgba(0,0,0,0.3)}
+body.light-mode .confirm-overlay{background:rgba(0,0,0,0.3)}
+body.light-mode .toast{background:var(--bg-secondary);border-color:var(--border-color);box-shadow:var(--shadow-lg)}
+
+/* Theme Toggle */
+.theme-toggle{
+  width:40px;height:40px;border-radius:50%;border:1px solid var(--border-color);
+  background:var(--bg-secondary);color:var(--text-secondary);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all var(--transition);flex-shrink:0;
+}
+.theme-toggle:hover{color:var(--text-primary);border-color:var(--text-muted);background:var(--bg-hover)}
+.theme-toggle svg{width:18px;height:18px;transition:transform 0.3s ease}
+.theme-toggle:active svg{transform:rotate(30deg)}
 
 .container{max-width:1100px;margin:0 auto;padding:0 20px;position:relative;z-index:1}
 
@@ -420,8 +460,32 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
   .date-filter{width:100%}
   .modal{max-width:100%;border-radius:14px 14px 0 0;max-height:95vh;align-self:flex-end}
   .modal-overlay{padding:0;align-items:flex-end}
-  table{min-width:520px}
   .footer{flex-direction:column}
+
+  /* Mobile card layout for tables */
+  table{min-width:unset !important}
+  thead{display:none}
+  tbody tr{
+    display:block;padding:14px 16px;margin-bottom:0;
+    border-bottom:1px solid var(--border-color);
+  }
+  tbody tr:last-child{border-bottom:none}
+  tbody td{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:5px 0;white-space:normal;border:none;font-size:0.85rem;
+    gap:12px;
+  }
+  tbody td::before{
+    content:attr(data-label);
+    font-weight:600;font-size:0.72rem;color:var(--text-secondary);
+    text-transform:uppercase;letter-spacing:0.04em;
+    flex-shrink:0;min-width:70px;
+  }
+  tbody td:last-child{padding-top:10px;justify-content:flex-end}
+  tbody td:last-child::before{display:none}
+  td.item-cell{min-width:unset;max-width:unset}
+  .actions-cell{gap:8px}
+  .actions-cell .btn-icon{width:36px;height:36px;background:var(--bg-tertiary);border-radius:var(--radius-sm)}
 }
 @media(max-width:400px){
   .dashboard{grid-template-columns:1fr}
@@ -538,6 +602,10 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
       <div class="logo-text">Poke<span>Tracker</span></div>
     </div>
     <div class="header-actions">
+      <button type="button" class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-label="Toggle light/dark mode" title="Toggle theme">
+        <svg id="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg id="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      </button>
       <div class="currency-toggle" role="radiogroup" aria-label="Currency selection">
         <button type="button" id="btn-gbp" class="active" role="radio" aria-checked="true" onclick="setCurrency('gbp')">£ GBP</button>
         <button type="button" id="btn-eur" role="radio" aria-checked="false" onclick="setCurrency('eur')">€ EUR</button>
@@ -1016,10 +1084,45 @@ let ratesLive = false;
 // Store names list (persisted in localStorage)
 let storeNames = [];
 
+/* ===== Theme ===== */
+// Apply theme immediately to prevent flash
+(function() {
+  const saved = localStorage.getItem('poketracker_theme');
+  if (saved === 'light') document.body.classList.add('light-mode');
+  // Also check system preference if no saved preference
+  if (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+    document.body.classList.add('light-mode');
+  }
+})();
+
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light-mode');
+  localStorage.setItem('poketracker_theme', isLight ? 'light' : 'dark');
+  updateThemeButton();
+  updateThemeColor();
+  // Re-render chart with correct colors
+  if (monthlyChart) renderChart();
+}
+
+function updateThemeButton() {
+  const isLight = document.body.classList.contains('light-mode');
+  document.getElementById('theme-icon-sun').style.display = isLight ? 'block' : 'none';
+  document.getElementById('theme-icon-moon').style.display = isLight ? 'none' : 'block';
+  document.getElementById('theme-toggle').title = isLight ? 'Switch to dark mode' : 'Switch to light mode';
+}
+
+function updateThemeColor() {
+  const isLight = document.body.classList.contains('light-mode');
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = isLight ? '#f5f6f8' : '#0d1117';
+}
+
 /* ===== Init ===== */
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
+  updateThemeButton();
+  updateThemeColor();
   showLoader(true);
   loadStoreNames();
   // Fetch rates and data in parallel
@@ -1276,10 +1379,10 @@ function renderChart() {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: '#161b22',
-          titleColor: '#e6edf3',
-          bodyColor: '#e6edf3',
-          borderColor: '#30363d',
+          backgroundColor: document.body.classList.contains('light-mode') ? '#ffffff' : '#161b22',
+          titleColor: document.body.classList.contains('light-mode') ? '#1f2328' : '#e6edf3',
+          bodyColor: document.body.classList.contains('light-mode') ? '#1f2328' : '#e6edf3',
+          borderColor: document.body.classList.contains('light-mode') ? '#d0d7de' : '#30363d',
           borderWidth: 1,
           cornerRadius: 8,
           padding: 12,
@@ -1290,14 +1393,14 @@ function renderChart() {
       },
       scales: {
         x: {
-          grid: { color: 'rgba(48, 54, 61, 0.5)', drawBorder: false },
-          ticks: { color: '#8b949e', font: { family: 'DM Sans', size: 11 } }
+          grid: { color: document.body.classList.contains('light-mode') ? 'rgba(0,0,0,0.06)' : 'rgba(48, 54, 61, 0.5)', drawBorder: false },
+          ticks: { color: document.body.classList.contains('light-mode') ? '#656d76' : '#8b949e', font: { family: 'DM Sans', size: 11 } }
         },
         y: {
           beginAtZero: true,
-          grid: { color: 'rgba(48, 54, 61, 0.5)', drawBorder: false },
+          grid: { color: document.body.classList.contains('light-mode') ? 'rgba(0,0,0,0.06)' : 'rgba(48, 54, 61, 0.5)', drawBorder: false },
           ticks: {
-            color: '#8b949e',
+            color: document.body.classList.contains('light-mode') ? '#656d76' : '#8b949e',
             font: { family: 'DM Sans', size: 11 },
             callback: function(val) { return currencySymbol() + val; }
           }
@@ -1359,14 +1462,14 @@ function renderTable() {
     const unitPrice = getDisplayPrice(entry);
     const lineTotal = unitPrice * qty;
     return `<tr>
-      <td>${dateFormatted}</td>
-      <td class="item-cell">${escapeHtml(entry.item)}</td>
-      <td><span class="qty-badge">${qty}</span></td>
-      <td>${currencySymbol()}${unitPrice.toFixed(2)}</td>
-      <td><strong>${currencySymbol()}${lineTotal.toFixed(2)}</strong></td>
-      <td><span class="source-badge ${entry.source}">${entry.source}</span></td>
-      <td>${entry.store_name ? `<span class="store-tag" title="${escapeHtml(entry.store_name)}">${escapeHtml(entry.store_name)}</span>` : '<span class="store-tag">-</span>'}</td>
-      <td>
+      <td data-label="Date">${dateFormatted}</td>
+      <td data-label="Item" class="item-cell">${escapeHtml(entry.item)}</td>
+      <td data-label="Qty"><span class="qty-badge">${qty}</span></td>
+      <td data-label="Price">${currencySymbol()}${unitPrice.toFixed(2)}</td>
+      <td data-label="Total"><strong>${currencySymbol()}${lineTotal.toFixed(2)}</strong></td>
+      <td data-label="Source"><span class="source-badge ${entry.source}">${entry.source}</span></td>
+      <td data-label="Store">${entry.store_name ? `<span class="store-tag" title="${escapeHtml(entry.store_name)}">${escapeHtml(entry.store_name)}</span>` : '<span class="store-tag">-</span>'}</td>
+      <td data-label="">
         <div class="actions-cell">
           <button type="button" class="btn-icon" onclick="openEditModal('${entry.id}')" aria-label="Edit ${escapeHtml(entry.item)}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -1865,13 +1968,13 @@ function renderCardTable() {
   tbody.innerHTML = pageItems.map(entry => {
     const dateFormatted = new Date(entry.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     return '<tr>' +
-      '<td>' + dateFormatted + '</td>' +
-      '<td><strong>' + escapeHtml(entry.series) + '</strong></td>' +
-      '<td class="weight-cell">' + entry.weight.toFixed(3) + 'g</td>' +
-      '<td>' + (entry.cover_picture ? escapeHtml(entry.cover_picture) : '<span style="color:var(--text-muted)">-</span>') + '</td>' +
-      '<td>' + (entry.bipped ? '<span class="badge badge-bipped">Bipped</span>' : '<span class="badge badge-no">No</span>') + '</td>' +
-      '<td>' + (entry.had_rare ? '<span class="badge badge-yes">Rare</span>' : '<span class="badge badge-no">No</span>') + '</td>' +
-      '<td><div class="actions-cell">' +
+      '<td data-label="Date">' + dateFormatted + '</td>' +
+      '<td data-label="Series"><strong>' + escapeHtml(entry.series) + '</strong></td>' +
+      '<td data-label="Weight" class="weight-cell">' + entry.weight.toFixed(3) + 'g</td>' +
+      '<td data-label="Cover">' + (entry.cover_picture ? escapeHtml(entry.cover_picture) : '<span style="color:var(--text-muted)">-</span>') + '</td>' +
+      '<td data-label="Bipped">' + (entry.bipped ? '<span class="badge badge-bipped">Bipped</span>' : '<span class="badge badge-no">No</span>') + '</td>' +
+      '<td data-label="Rare">' + (entry.had_rare ? '<span class="badge badge-yes">Rare</span>' : '<span class="badge badge-no">No</span>') + '</td>' +
+      '<td data-label=""><div class="actions-cell">' +
         '<button type="button" class="btn-icon" onclick="openEditCardModal(\'' + entry.id + '\')" aria-label="Edit entry">' +
           '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
         '</button>' +
@@ -1937,11 +2040,11 @@ function renderPullRates() {
     const avgW = (d.totalWeight / d.total).toFixed(3);
     const rate = ((d.rares / d.total) * 100).toFixed(2);
     return '<tr>' +
-      '<td><strong>' + escapeHtml(s) + '</strong></td>' +
-      '<td>' + d.total + '</td>' +
-      '<td>' + d.rares + '</td>' +
-      '<td class="weight-cell">' + avgW + 'g</td>' +
-      '<td><span class="badge ' + (parseFloat(rate) > 0 ? 'badge-yes' : 'badge-no') + '">' + rate + '%</span></td>' +
+      '<td data-label="Series"><strong>' + escapeHtml(s) + '</strong></td>' +
+      '<td data-label="Packs">' + d.total + '</td>' +
+      '<td data-label="Rares">' + d.rares + '</td>' +
+      '<td data-label="Avg Wt" class="weight-cell">' + avgW + 'g</td>' +
+      '<td data-label="Rate"><span class="badge ' + (parseFloat(rate) > 0 ? 'badge-yes' : 'badge-no') + '">' + rate + '%</span></td>' +
     '</tr>';
   }).join('');
 
