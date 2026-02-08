@@ -515,7 +515,7 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
   .footer{flex-direction:column}
   .footer .btn{font-size:0.8rem;padding:10px 16px}
 
-  /* --- Mobile card layout for tables --- */
+  /* --- Mobile card layout for tables (compact) --- */
   table{min-width:unset !important}
   thead{display:none}
   .table-scroll{overflow-x:visible}
@@ -523,56 +523,50 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
   tbody tr{
     display:grid;
     grid-template-columns:1fr 1fr;
-    gap:1px 8px;
-    padding:10px 12px;margin:6px 0;
+    gap:0 6px;
+    padding:8px 10px;margin:4px 0;
     border:1px solid var(--border-color);
-    border-radius:var(--radius);
+    border-radius:var(--radius-sm);
     background:var(--bg-secondary);
     align-items:center;
   }
   tbody td{
-    display:flex;align-items:center;gap:4px;
-    padding:4px 0;white-space:normal;border:none;
-    font-size:0.78rem;min-height:22px;
+    display:flex;align-items:center;gap:3px;
+    padding:2px 0;white-space:normal;border:none;
+    font-size:0.72rem;min-height:18px;
     overflow:hidden;text-overflow:ellipsis;
   }
   tbody td::before{
     content:attr(data-label);
-    font-weight:700;font-size:0.55rem;color:var(--text-muted);
-    text-transform:uppercase;letter-spacing:0.04em;
-    flex-shrink:0;min-width:auto;margin-right:4px;
+    font-weight:700;font-size:0.5rem;color:var(--text-muted);
+    text-transform:uppercase;letter-spacing:0.03em;
+    flex-shrink:0;min-width:auto;margin-right:3px;
     white-space:nowrap;
   }
-  /* Empty data-label = no pseudo-element */
   tbody td[data-label=""]::before{display:none}
-  /* Row 1: first cell spans full width as card header */
   tbody td:first-child{
     grid-column:1 / -1;
-    font-size:0.82rem;
-    padding-bottom:5px;margin-bottom:3px;
+    font-size:0.76rem;
+    padding-bottom:3px;margin-bottom:2px;
     border-bottom:1px solid var(--border-color);
   }
-  /* Actions row spans full width */
   tbody td:last-child{
     grid-column:1 / -1;
     justify-content:flex-end;
-    padding-top:5px;margin-top:3px;
+    padding-top:3px;margin-top:2px;
     border-top:1px solid var(--border-color);
   }
   tbody td:last-child::before{display:none}
   td.item-cell{min-width:unset;max-width:unset;grid-column:1 / -1}
-  /* Card tracker: Series (2nd td) spans full width */
-  #ct-table tbody td:nth-child(2){grid-column:1 / -1}
-  /* Card tracker: merge bipped+rare+actions on one row */
+  #ct-table tbody td:nth-child(2){grid-column:1 / -1;font-size:0.74rem}
   #ct-table tbody td:nth-child(5),
-  #ct-table tbody td:nth-child(6){font-size:0.72rem}
-  /* Pull rates: Series (1st td) already spans full */
-  .actions-cell{gap:8px}
+  #ct-table tbody td:nth-child(6){font-size:0.68rem}
+  .actions-cell{gap:6px}
   .actions-cell .btn-icon{
-    width:30px;height:30px;
-    background:var(--bg-tertiary);border-radius:var(--radius-sm);
+    width:28px;height:28px;
+    background:var(--bg-tertiary);border-radius:4px;
   }
-  .badge{font-size:0.65rem;padding:2px 6px}
+  .badge{font-size:0.6rem;padding:1px 5px}
 }
 @media(max-width:400px){
   .dashboard{grid-template-columns:1fr}
@@ -1984,8 +1978,16 @@ async function loadCardEntries() {
     if (saved) {
       cardEntries = JSON.parse(saved);
       if (Array.isArray(cardEntries) && cardEntries.length > 0) {
-        cardEntries.forEach(c => existingIds.add(c.id));
-        // Merge any new entries from seed file (e.g. Zacian, Bellibolt)
+        let changed = false;
+        cardEntries.forEach(c => {
+          existingIds.add(c.id);
+          if (c.series === 'Scarlet & Violet') {
+            c.series = 'Scarlet & violet - Journey Together';
+            changed = true;
+          }
+        });
+        if (changed) saveCardEntries();
+        // Merge any new entries from seed file (e.g. Melodelfe, Zoroark)
         try {
           const res = await fetch('./card_data.json');
           if (res.ok) {
