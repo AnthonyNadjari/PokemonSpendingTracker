@@ -82,8 +82,8 @@ body.light-mode{
 body.light-mode::before{opacity:0}
 body.light-mode::after{opacity:0}
 body.light-mode .header{background:rgba(245,246,248,0.95)}
-body.light-mode .logo svg circle[stroke="#FF1C1C"]{stroke:#FF1C1C}
-body.light-mode .logo svg circle[fill="#0d1117"]{fill:#f5f6f8}
+body.light-mode .logo svg rect[fill="#333"]{fill:#444}
+body.light-mode .logo svg circle[stroke="#333"]{stroke:#444}
 body.light-mode .card:hover{border-color:rgba(255,28,28,0.15);box-shadow:0 0 20px rgba(255,28,28,0.04)}
 body.light-mode .chart-section{box-shadow:var(--shadow)}
 body.light-mode .table-wrap{box-shadow:var(--shadow)}
@@ -697,12 +697,23 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
 <header class="header">
   <div class="container header-inner">
     <div class="logo">
-      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <circle cx="50" cy="50" r="48" stroke="#FF1C1C" stroke-width="4"/>
-        <rect x="2" y="48" width="96" height="4" fill="#FF1C1C"/>
-        <circle cx="50" cy="50" r="16" fill="#0d1117" stroke="#FF1C1C" stroke-width="4"/>
-        <circle cx="50" cy="50" r="8" fill="#FF1C1C"/>
-        <path d="M2 50 A48 48 0 0 1 98 50" fill="#FF1C1C" opacity="0.15"/>
+      <svg class="logo-icon" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="poke-red" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#FF5555"/>
+            <stop offset="100%" stop-color="#DD2222"/>
+          </linearGradient>
+          <linearGradient id="poke-btn" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#ffffff"/>
+            <stop offset="100%" stop-color="#e0e0e0"/>
+          </linearGradient>
+        </defs>
+        <circle cx="50" cy="50" r="46" stroke="#fff" stroke-width="2.5" fill="none"/>
+        <path d="M4 50 A46 46 0 0 1 96 50 L4 50 Z" fill="url(#poke-red)"/>
+        <path d="M4 50 A46 46 0 0 0 96 50 L4 50 Z" fill="#fff"/>
+        <rect x="4" y="48" width="92" height="4" fill="#333"/>
+        <circle cx="50" cy="50" r="14" fill="url(#poke-btn)" stroke="#333" stroke-width="2"/>
+        <circle cx="50" cy="50" r="6" fill="#FF1C1C"/>
       </svg>
       <div class="logo-text">Poke<span>Tracker</span></div>
     </div>
