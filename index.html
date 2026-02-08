@@ -292,6 +292,24 @@ thead th{
   text-transform:uppercase;letter-spacing:0.05em;color:var(--text-secondary);
   text-align:left;border-bottom:1px solid var(--border-color);white-space:nowrap;
 }
+thead th.sortable{cursor:pointer;user-select:none;position:relative;padding-right:24px;transition:color var(--transition)}
+thead th.sortable:hover{color:var(--text-primary)}
+thead th.sortable::after{
+  content:'';position:absolute;right:8px;top:50%;transform:translateY(-50%);
+  border:4px solid transparent;border-bottom-color:var(--text-muted);margin-top:-5px;
+  opacity:0.3;transition:opacity var(--transition);
+}
+thead th.sortable::before{
+  content:'';position:absolute;right:8px;top:50%;transform:translateY(-50%);
+  border:4px solid transparent;border-top-color:var(--text-muted);margin-top:3px;
+  opacity:0.3;transition:opacity var(--transition);
+}
+thead th.sortable.sort-asc{color:var(--text-primary)}
+thead th.sortable.sort-asc::after{opacity:1;border-bottom-color:var(--red)}
+thead th.sortable.sort-asc::before{opacity:0.15}
+thead th.sortable.sort-desc{color:var(--text-primary)}
+thead th.sortable.sort-desc::before{opacity:1;border-top-color:var(--red)}
+thead th.sortable.sort-desc::after{opacity:0.15}
 tbody tr{border-bottom:1px solid var(--border-color);transition:background var(--transition)}
 tbody tr:last-child{border-bottom:none}
 tbody tr:hover{background:var(--bg-hover)}
@@ -716,13 +734,13 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
       <table id="purchases-table" aria-label="Purchases list">
         <thead>
           <tr>
-            <th>Date</th>
-            <th>Item</th>
-            <th>Qty</th>
-            <th>Unit Price</th>
-            <th>Total</th>
-            <th>Source</th>
-            <th>Store</th>
+            <th class="sortable sort-desc" data-sort="date" onclick="sortSpending('date',this)">Date</th>
+            <th class="sortable" data-sort="item" onclick="sortSpending('item',this)">Item</th>
+            <th class="sortable" data-sort="qty" onclick="sortSpending('qty',this)">Qty</th>
+            <th class="sortable" data-sort="price" onclick="sortSpending('price',this)">Unit Price</th>
+            <th class="sortable" data-sort="total" onclick="sortSpending('total',this)">Total</th>
+            <th class="sortable" data-sort="source" onclick="sortSpending('source',this)">Source</th>
+            <th class="sortable" data-sort="store" onclick="sortSpending('store',this)">Store</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -846,12 +864,12 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
         <table id="ct-table" aria-label="Card entries list">
           <thead>
             <tr>
-              <th>Date</th>
-              <th>Series</th>
-              <th>Weight</th>
-              <th>Cover</th>
-              <th>Bipped</th>
-              <th>Had Rare</th>
+              <th class="sortable sort-desc" data-sort="date" onclick="sortCards('date',this)">Date</th>
+              <th class="sortable" data-sort="series" onclick="sortCards('series',this)">Series</th>
+              <th class="sortable" data-sort="weight" onclick="sortCards('weight',this)">Weight</th>
+              <th class="sortable" data-sort="cover" onclick="sortCards('cover',this)">Cover</th>
+              <th class="sortable" data-sort="bipped" onclick="sortCards('bipped',this)">Bipped</th>
+              <th class="sortable" data-sort="rare" onclick="sortCards('rare',this)">Had Rare</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -883,11 +901,11 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
         <table id="ct-pull-table" aria-label="Pull rates by series">
           <thead>
             <tr>
-              <th>Series</th>
-              <th>Total Packs</th>
-              <th>Rare Count</th>
-              <th>Avg Weight</th>
-              <th>Pull Rate</th>
+              <th class="sortable sort-asc" data-sort="series" onclick="sortPullRates('series',this)">Series</th>
+              <th class="sortable" data-sort="total" onclick="sortPullRates('total',this)">Total Packs</th>
+              <th class="sortable" data-sort="rares" onclick="sortPullRates('rares',this)">Rare Count</th>
+              <th class="sortable" data-sort="weight" onclick="sortPullRates('weight',this)">Avg Weight</th>
+              <th class="sortable" data-sort="rate" onclick="sortPullRates('rate',this)">Pull Rate</th>
             </tr>
           </thead>
           <tbody id="ct-pull-body"></tbody>
@@ -1074,6 +1092,8 @@ let dateTo = '';
 let currentPage = 1;
 const PAGE_SIZE = 20;
 let editingId = null;
+let sortCol = 'date'; // spending table sort column
+let sortDir = 'desc'; // spending table sort direction
 let monthlyChart = null;
 
 // Exchange rates: everything relative to GBP as base
@@ -1410,6 +1430,23 @@ function renderChart() {
   });
 }
 
+/* ===== Sorting helpers ===== */
+function updateSortHeaders(tableId, col, dir) {
+  const ths = document.querySelectorAll('#' + tableId + ' thead th.sortable');
+  ths.forEach(th => {
+    th.classList.remove('sort-asc', 'sort-desc');
+    if (th.dataset.sort === col) th.classList.add(dir === 'asc' ? 'sort-asc' : 'sort-desc');
+  });
+}
+
+function sortSpending(col, thEl) {
+  if (sortCol === col) { sortDir = sortDir === 'asc' ? 'desc' : 'asc'; }
+  else { sortCol = col; sortDir = (col === 'date') ? 'desc' : 'asc'; }
+  updateSortHeaders('purchases-table', sortCol, sortDir);
+  currentPage = 1;
+  renderTable();
+}
+
 /* ===== Table ===== */
 function getFiltered() {
   let list = [...purchases];
@@ -1420,7 +1457,24 @@ function getFiltered() {
   }
   if (dateFrom) list = list.filter(e => e.date >= dateFrom);
   if (dateTo) list = list.filter(e => e.date <= dateTo);
-  list.sort((a, b) => (b.date > a.date ? 1 : b.date < a.date ? -1 : 0));
+
+  const dir = sortDir === 'asc' ? 1 : -1;
+  list.sort((a, b) => {
+    let va, vb;
+    switch (sortCol) {
+      case 'date': va = a.date; vb = b.date; break;
+      case 'item': va = a.item.toLowerCase(); vb = b.item.toLowerCase(); break;
+      case 'qty': va = a.quantity || 1; vb = b.quantity || 1; break;
+      case 'price': va = getDisplayPrice(a); vb = getDisplayPrice(b); break;
+      case 'total': va = getDisplayPrice(a) * (a.quantity || 1); vb = getDisplayPrice(b) * (b.quantity || 1); break;
+      case 'source': va = a.source; vb = b.source; break;
+      case 'store': va = (a.store_name || '').toLowerCase(); vb = (b.store_name || '').toLowerCase(); break;
+      default: va = a.date; vb = b.date;
+    }
+    if (va < vb) return -1 * dir;
+    if (va > vb) return 1 * dir;
+    return 0;
+  });
   return list;
 }
 
@@ -1777,6 +1831,10 @@ let ctPage = 1;
 const CT_PAGE_SIZE = 20;
 let ctEditingId = null;
 let ctDeleteTargetId = null;
+let ctSortCol = 'date'; // card table sort column
+let ctSortDir = 'desc'; // card table sort direction
+let prSortCol = 'series'; // pull rates sort column
+let prSortDir = 'asc'; // pull rates sort direction
 
 /* ===== Card Tracker Init ===== */
 async function initCardTracker() {
@@ -1918,6 +1976,14 @@ function updateCardDataLists() {
 }
 
 /* ===== Card Table ===== */
+function sortCards(col, thEl) {
+  if (ctSortCol === col) { ctSortDir = ctSortDir === 'asc' ? 'desc' : 'asc'; }
+  else { ctSortCol = col; ctSortDir = (col === 'date') ? 'desc' : 'asc'; }
+  updateSortHeaders('ct-table', ctSortCol, ctSortDir);
+  ctPage = 1;
+  renderCardTable();
+}
+
 function getFilteredCards() {
   let list = [...cardEntries];
   const seriesFilter = document.getElementById('ct-series-filter').value;
@@ -1929,7 +1995,22 @@ function getFilteredCards() {
     (c.series || '').toLowerCase().includes(search)
   );
 
-  list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  const dir = ctSortDir === 'asc' ? 1 : -1;
+  list.sort((a, b) => {
+    let va, vb;
+    switch (ctSortCol) {
+      case 'date': va = new Date(a.created_at).getTime(); vb = new Date(b.created_at).getTime(); break;
+      case 'series': va = (a.series || '').toLowerCase(); vb = (b.series || '').toLowerCase(); break;
+      case 'weight': va = a.weight || 0; vb = b.weight || 0; break;
+      case 'cover': va = (a.cover_picture || '').toLowerCase(); vb = (b.cover_picture || '').toLowerCase(); break;
+      case 'bipped': va = a.bipped ? 1 : 0; vb = b.bipped ? 1 : 0; break;
+      case 'rare': va = a.had_rare ? 1 : 0; vb = b.had_rare ? 1 : 0; break;
+      default: va = new Date(a.created_at).getTime(); vb = new Date(b.created_at).getTime();
+    }
+    if (va < vb) return -1 * dir;
+    if (va > vb) return 1 * dir;
+    return 0;
+  });
   return list;
 }
 
@@ -2010,6 +2091,13 @@ function ctGoToPage(page) {
 }
 
 /* ===== Pull Rates ===== */
+function sortPullRates(col, thEl) {
+  if (prSortCol === col) { prSortDir = prSortDir === 'asc' ? 'desc' : 'asc'; }
+  else { prSortCol = col; prSortDir = (col === 'series') ? 'asc' : 'desc'; }
+  updateSortHeaders('ct-pull-table', prSortCol, prSortDir);
+  renderPullRates();
+}
+
 function renderPullRates() {
   const seriesMap = {};
   cardEntries.forEach(c => {
@@ -2021,12 +2109,33 @@ function renderPullRates() {
     seriesMap[c.series].totalWeight += (c.weight || 0);
   });
 
-  const seriesKeys = Object.keys(seriesMap).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+  // Build sortable array
+  const seriesRows = Object.keys(seriesMap).map(s => {
+    const d = seriesMap[s];
+    return { name: s, total: d.total, rares: d.rares, avgW: d.totalWeight / d.total, rate: (d.rares / d.total) * 100 };
+  });
+
+  const dir = prSortDir === 'asc' ? 1 : -1;
+  seriesRows.sort((a, b) => {
+    let va, vb;
+    switch (prSortCol) {
+      case 'series': va = a.name.toLowerCase(); vb = b.name.toLowerCase(); break;
+      case 'total': va = a.total; vb = b.total; break;
+      case 'rares': va = a.rares; vb = b.rares; break;
+      case 'weight': va = a.avgW; vb = b.avgW; break;
+      case 'rate': va = a.rate; vb = b.rate; break;
+      default: va = a.name.toLowerCase(); vb = b.name.toLowerCase();
+    }
+    if (va < vb) return -1 * dir;
+    if (va > vb) return 1 * dir;
+    return 0;
+  });
+
   const tbody = document.getElementById('ct-pull-body');
   const emptyEl = document.getElementById('ct-pull-empty');
   const tableEl = document.getElementById('ct-pull-table');
 
-  if (seriesKeys.length === 0) {
+  if (seriesRows.length === 0) {
     tableEl.style.display = 'none';
     emptyEl.style.display = 'block';
     document.getElementById('ct-pull-summary').innerHTML = '';
@@ -2035,16 +2144,13 @@ function renderPullRates() {
   emptyEl.style.display = 'none';
   tableEl.style.display = 'table';
 
-  tbody.innerHTML = seriesKeys.map(s => {
-    const d = seriesMap[s];
-    const avgW = (d.totalWeight / d.total).toFixed(3);
-    const rate = ((d.rares / d.total) * 100).toFixed(2);
+  tbody.innerHTML = seriesRows.map(r => {
     return '<tr>' +
-      '<td data-label="Series"><strong>' + escapeHtml(s) + '</strong></td>' +
-      '<td data-label="Packs">' + d.total + '</td>' +
-      '<td data-label="Rares">' + d.rares + '</td>' +
-      '<td data-label="Avg Wt" class="weight-cell">' + avgW + 'g</td>' +
-      '<td data-label="Rate"><span class="badge ' + (parseFloat(rate) > 0 ? 'badge-yes' : 'badge-no') + '">' + rate + '%</span></td>' +
+      '<td data-label="Series"><strong>' + escapeHtml(r.name) + '</strong></td>' +
+      '<td data-label="Packs">' + r.total + '</td>' +
+      '<td data-label="Rares">' + r.rares + '</td>' +
+      '<td data-label="Avg Wt" class="weight-cell">' + r.avgW.toFixed(3) + 'g</td>' +
+      '<td data-label="Rate"><span class="badge ' + (r.rate > 0 ? 'badge-yes' : 'badge-no') + '">' + r.rate.toFixed(2) + '%</span></td>' +
     '</tr>';
   }).join('');
 
@@ -2054,7 +2160,7 @@ function renderPullRates() {
   const overallRate = totalPacks > 0 ? ((totalRares / totalPacks) * 100).toFixed(2) : '0.00';
 
   document.getElementById('ct-pull-summary').innerHTML =
-    '<div class="card"><div class="card-label">Total Series</div><div class="card-value">' + seriesKeys.length + '</div></div>' +
+    '<div class="card"><div class="card-label">Total Series</div><div class="card-value">' + seriesRows.length + '</div></div>' +
     '<div class="card"><div class="card-label">Total Packs</div><div class="card-value">' + totalPacks + '</div></div>' +
     '<div class="card"><div class="card-label">Overall Pull Rate</div><div class="card-value">' + overallRate + '%</div></div>';
 }
