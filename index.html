@@ -519,40 +519,60 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
   table{min-width:unset !important}
   thead{display:none}
   .table-scroll{overflow-x:visible}
+  .table-wrap{border:none;background:none}
   tbody tr{
-    display:block;padding:16px;margin:8px 0;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:1px 8px;
+    padding:10px 12px;margin:6px 0;
     border:1px solid var(--border-color);
     border-radius:var(--radius);
     background:var(--bg-secondary);
+    align-items:center;
   }
-  tbody tr:last-child{border-bottom:1px solid var(--border-color)}
   tbody td{
-    display:flex;justify-content:space-between;align-items:center;
-    padding:6px 0;white-space:normal;border:none;font-size:0.85rem;
-    gap:12px;
-  }
-  tbody td:not(:last-child){
-    border-bottom:1px solid var(--border-color);
-    padding-bottom:8px;margin-bottom:2px;
+    display:flex;align-items:center;gap:4px;
+    padding:4px 0;white-space:normal;border:none;
+    font-size:0.78rem;min-height:22px;
+    overflow:hidden;text-overflow:ellipsis;
   }
   tbody td::before{
     content:attr(data-label);
-    font-weight:600;font-size:0.7rem;color:var(--text-secondary);
-    text-transform:uppercase;letter-spacing:0.05em;
-    flex-shrink:0;min-width:65px;
+    font-weight:700;font-size:0.55rem;color:var(--text-muted);
+    text-transform:uppercase;letter-spacing:0.04em;
+    flex-shrink:0;min-width:auto;margin-right:4px;
+    white-space:nowrap;
   }
+  /* Empty data-label = no pseudo-element */
+  tbody td[data-label=""]::before{display:none}
+  /* Row 1: first cell spans full width as card header */
+  tbody td:first-child{
+    grid-column:1 / -1;
+    font-size:0.82rem;
+    padding-bottom:5px;margin-bottom:3px;
+    border-bottom:1px solid var(--border-color);
+  }
+  /* Actions row spans full width */
   tbody td:last-child{
-    padding-top:12px;justify-content:flex-end;
-    border-bottom:none;margin-bottom:0;
+    grid-column:1 / -1;
+    justify-content:flex-end;
+    padding-top:5px;margin-top:3px;
+    border-top:1px solid var(--border-color);
   }
   tbody td:last-child::before{display:none}
-  td.item-cell{min-width:unset;max-width:unset}
-  .actions-cell{gap:10px}
+  td.item-cell{min-width:unset;max-width:unset;grid-column:1 / -1}
+  /* Card tracker: Series (2nd td) spans full width */
+  #ct-table tbody td:nth-child(2){grid-column:1 / -1}
+  /* Card tracker: merge bipped+rare+actions on one row */
+  #ct-table tbody td:nth-child(5),
+  #ct-table tbody td:nth-child(6){font-size:0.72rem}
+  /* Pull rates: Series (1st td) already spans full */
+  .actions-cell{gap:8px}
   .actions-cell .btn-icon{
-    width:38px;height:38px;
+    width:30px;height:30px;
     background:var(--bg-tertiary);border-radius:var(--radius-sm);
-    border:1px solid var(--border-color);
   }
+  .badge{font-size:0.65rem;padding:2px 6px}
 }
 @media(max-width:400px){
   .dashboard{grid-template-columns:1fr}
