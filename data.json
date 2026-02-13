@@ -9,7 +9,8 @@
     "price_usd": 182.70,
     "source": "online",
     "store_name": "TCGPlayer",
-    "notes": "Near mint condition, great deal"
+    "notes": "Near mint condition, great deal",
+    "delivery_fee_gbp": 0
   },
   {
     "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
@@ -21,7 +22,8 @@
     "price_usd": 31.50,
     "source": "market",
     "store_name": "Camden Market",
-    "notes": "Fun novelty cards from local market"
+    "notes": "Fun novelty cards from local market",
+    "delivery_fee_gbp": 0
   },
   {
     "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
@@ -33,7 +35,8 @@
     "price_usd": 239.39,
     "source": "store",
     "store_name": "Pokemon Center",
-    "notes": ""
+    "notes": "",
+    "delivery_fee_gbp": 0
   },
   {
     "id": "d4e5f6a7-b8c9-0123-defa-234567890123",
@@ -45,7 +48,8 @@
     "price_usd": 98.91,
     "source": "online",
     "store_name": "eBay",
-    "notes": "Graded PSA 9"
+    "notes": "Graded PSA 9",
+    "delivery_fee_gbp": 0
   },
   {
     "id": "e5f6a7b8-c9d0-1234-efab-345678901234",
@@ -57,7 +61,34 @@
     "price_usd": 49.13,
     "source": "store",
     "store_name": "Smyths",
-    "notes": "Elite Trainer Boxes with promos"
+    "notes": "Elite Trainer Boxes with promos",
+    "delivery_fee_gbp": 0
+  },
+  {
+    "id": "11111111-aaaa-bbbb-cccc-111111111111",
+    "date": "2026-01-29",
+    "item": "Pokemon TCG: Mega Evolution Ascended Heroes - Tech Sticker Collection - Ghastly",
+    "quantity": 1,
+    "price_gbp": 16.99,
+    "price_eur": 19.88,
+    "price_usd": 21.41,
+    "source": "online",
+    "store_name": "Very",
+    "notes": "Order Ref: 300009484774",
+    "delivery_fee_gbp": 3.99
+  },
+  {
+    "id": "22222222-aaaa-bbbb-cccc-222222222222",
+    "date": "2026-01-30",
+    "item": "Pokemon Day 2026 61 Collection",
+    "quantity": 1,
+    "price_gbp": 15.99,
+    "price_eur": 18.71,
+    "price_usd": 20.15,
+    "source": "online",
+    "store_name": "Sports Direct",
+    "notes": "Order: SD40000131777938",
+    "delivery_fee_gbp": 4.99
   },
   {
     "id": "f6a7b8c9-d0e1-2345-fabc-456789012345",
@@ -69,7 +100,21 @@
     "price_usd": 40.32,
     "source": "market",
     "store_name": "",
-    "notes": ""
+    "notes": "",
+    "delivery_fee_gbp": 0
+  },
+  {
+    "id": "33333333-aaaa-bbbb-cccc-333333333333",
+    "date": "2026-02-03",
+    "item": "Pokemon TCG: SV10.5 Mini Tin Garbodor/Amoonguss",
+    "quantity": 1,
+    "price_gbp": 10.02,
+    "price_eur": 11.72,
+    "price_usd": 12.63,
+    "source": "online",
+    "store_name": "George.com",
+    "notes": "Order: 161088556",
+    "delivery_fee_gbp": 0
   },
   {
     "id": "a7b8c9d0-e1f2-3456-abcd-567890123456",
@@ -81,6 +126,33 @@
     "price_usd": 28.35,
     "source": "store",
     "store_name": "Pokemon Center",
-    "notes": "10-pack bundles on sale"
+    "notes": "10-pack bundles on sale",
+    "delivery_fee_gbp": 0
+  },
+  {
+    "id": "44444444-aaaa-bbbb-cccc-444444444444",
+    "date": "2026-02-10",
+    "item": "Journey Together Booster x5",
+    "quantity": 1,
+    "price_gbp": 21.45,
+    "price_eur": 25.10,
+    "price_usd": 27.03,
+    "source": "online",
+    "store_name": "Shopify Store",
+    "notes": "Order #12875",
+    "delivery_fee_gbp": 3.50
+  },
+  {
+    "id": "55555555-aaaa-bbbb-cccc-555555555555",
+    "date": "2026-02-13",
+    "item": "Stuff at Pokemon EUIC",
+    "quantity": 1,
+    "price_gbp": 145.00,
+    "price_eur": 169.65,
+    "price_usd": 182.70,
+    "source": "store",
+    "store_name": "Pokemon Center",
+    "notes": "",
+    "delivery_fee_gbp": 0
   }
 ]

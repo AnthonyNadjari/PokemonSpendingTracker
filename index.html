@@ -465,6 +465,24 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
 /* Responsive */
 @media(max-width:900px){
   .dashboard{grid-template-columns:repeat(2,1fr)}
+  /* Date + actions on same line (HTML puts actions in first cell when viewport <= 900px) */
+  #purchases-table .date-with-actions,
+  #ct-table .date-with-actions{
+    display:flex !important;
+    flex-wrap:nowrap;
+    justify-content:space-between;
+    align-items:center;
+    gap:8px;
+  }
+  #purchases-table .date-with-actions .actions-cell,
+  #ct-table .date-with-actions .actions-cell{
+    margin-left:auto;
+    flex-shrink:0;
+  }
+  #purchases-table .actions-col-placeholder,
+  #ct-table .actions-col-placeholder{
+    display:none !important;
+  }
 }
 @media(max-width:640px){
   /* --- Mobile Header --- */
@@ -515,57 +533,80 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
   .footer{flex-direction:column}
   .footer .btn{font-size:0.8rem;padding:10px 16px}
 
-  /* --- Mobile card layout for tables (compact) --- */
-  table{min-width:unset !important}
-  thead{display:none}
-  .table-scroll{overflow-x:visible}
-  .table-wrap{border:none;background:none}
-  tbody tr{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:0 6px;
+  /* --- Mobile card layout: force block so flex works in Safari --- */
+  #purchases-table,#ct-table{display:block !important;min-width:0 !important}
+  #purchases-table thead,#ct-table thead{display:none}
+  #purchases-table tbody,#ct-table tbody{display:block !important}
+  #purchases-table tbody tr,#ct-table tbody tr{
+    display:flex !important;
+    flex-wrap:wrap;
+    gap:6px 8px;
     padding:8px 10px;margin:4px 0;
     border:1px solid var(--border-color);
     border-radius:var(--radius-sm);
     background:var(--bg-secondary);
     align-items:center;
+    width:100%;
+    box-sizing:border-box;
   }
-  tbody td{
-    display:flex;align-items:center;gap:3px;
+  #purchases-table tbody td,#ct-table tbody td{
+    display:flex !important;align-items:center;gap:3px;
     padding:2px 0;white-space:normal;border:none;
     font-size:0.72rem;min-height:18px;
     overflow:hidden;text-overflow:ellipsis;
+    box-sizing:border-box;
   }
-  tbody td::before{
+  #purchases-table tbody td::before,#ct-table tbody td::before{
     content:attr(data-label);
     font-weight:700;font-size:0.5rem;color:var(--text-muted);
     text-transform:uppercase;letter-spacing:0.03em;
-    flex-shrink:0;min-width:auto;margin-right:3px;
-    white-space:nowrap;
+    flex-shrink:0;margin-right:3px;white-space:nowrap;
   }
-  tbody td[data-label=""]::before{display:none}
-  tbody td:first-child{
-    grid-column:1 / -1;
+  #purchases-table tbody td[data-label=""],#ct-table tbody td[data-label=""]{padding:0}
+  #purchases-table tbody td[data-label=""]::before,#ct-table tbody td[data-label=""]::before{display:none}
+  #purchases-table tbody td.actions-col-placeholder,#ct-table tbody td.actions-col-placeholder{display:none !important}
+  /* Row 1: Date + Edit/Delete on same line */
+  #purchases-table tbody td:first-child,#ct-table tbody td:first-child{
+    order:1;flex:1 1 0;min-width:0;max-width:none;
     font-size:0.76rem;
     padding-bottom:3px;margin-bottom:2px;
     border-bottom:1px solid var(--border-color);
+    justify-content:space-between;
+    width:100%;flex-basis:100%;
   }
-  tbody td:last-child{
-    grid-column:1 / -1;
+  #purchases-table tbody td:first-child .actions-cell,#ct-table tbody td:first-child .actions-cell{
+    flex-shrink:0;margin-left:auto;gap:2px;
+  }
+  #purchases-table tbody td:first-child .actions-cell .btn-icon,#ct-table tbody td:first-child .actions-cell .btn-icon{
+    width:26px;height:26px;
+  }
+  #purchases-table tbody td:last-child,#ct-table tbody td:last-child{
+    order:2;flex:0 0 auto;
     justify-content:flex-end;
-    padding-top:3px;margin-top:2px;
-    border-top:1px solid var(--border-color);
+    padding-bottom:3px;margin-bottom:2px;
+    border-bottom:1px solid var(--border-color);
   }
-  tbody td:last-child::before{display:none}
-  td.item-cell{min-width:unset;max-width:unset;grid-column:1 / -1}
-  #ct-table tbody td:nth-child(2){grid-column:1 / -1;font-size:0.74rem}
-  #ct-table tbody td:nth-child(5),
-  #ct-table tbody td:nth-child(6){font-size:0.68rem}
+  #purchases-table tbody td:last-child::before,#ct-table tbody td:last-child::before{display:none}
+  #purchases-table tbody td:nth-child(2),#ct-table tbody td:nth-child(2){order:3;flex:1 1 100%;font-size:0.74rem;min-width:0}
+  #purchases-table td.item-cell,#ct-table td.item-cell{min-width:unset;max-width:unset}
+  #purchases-table tbody td:nth-child(3),#ct-table tbody td:nth-child(3){order:4;flex:1 1 45%}
+  #purchases-table tbody td:nth-child(4),#ct-table tbody td:nth-child(4){order:5;flex:1 1 45%}
+  #purchases-table tbody td:nth-child(5),#ct-table tbody td:nth-child(5){order:6;flex:1 1 45%}
+  #purchases-table tbody td:nth-child(6),#ct-table tbody td:nth-child(6){order:7;flex:1 1 45%}
+  #purchases-table tbody td:nth-child(7){order:8;flex:1 1 45%}
+  #purchases-table tbody td:nth-child(8){order:9;flex:1 1 45%}
+  #ct-table tbody td:nth-child(5),#ct-table tbody td:nth-child(6){font-size:0.68rem}
+  /* Pull rates table: keep card layout but no order reorder */
+  #ct-pull-table{display:block !important;min-width:0 !important}
+  #ct-pull-table thead{display:none}
+  #ct-pull-table tbody{display:block !important}
+  #ct-pull-table tbody tr{display:flex !important;flex-wrap:wrap;gap:6px 8px;padding:8px 10px;margin:4px 0;border:1px solid var(--border-color);border-radius:var(--radius-sm);background:var(--bg-secondary);align-items:center;width:100%;box-sizing:border-box}
+  #ct-pull-table tbody td{display:flex !important;align-items:center;gap:3px;padding:2px 0;border:none;font-size:0.72rem;min-height:18px;box-sizing:border-box}
+  #ct-pull-table tbody td::before{content:attr(data-label);font-weight:700;font-size:0.5rem;color:var(--text-muted);text-transform:uppercase;margin-right:3px;white-space:nowrap}
+  .table-scroll{overflow-x:visible}
+  .table-wrap{border:none;background:none}
   .actions-cell{gap:6px}
-  .actions-cell .btn-icon{
-    width:28px;height:28px;
-    background:var(--bg-tertiary);border-radius:4px;
-  }
+  .actions-cell .btn-icon{width:28px;height:28px;background:var(--bg-tertiary);border-radius:4px}
   .badge{font-size:0.6rem;padding:1px 5px}
 }
 @media(max-width:400px){
@@ -774,7 +815,7 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
       <div class="card-icon yellow" aria-hidden="true">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       </div>
-      <div class="card-label">This Month</div>
+      <div class="card-label" id="period-label">This Period</div>
       <div class="card-value" id="month-spent">--</div>
       <div class="card-sub" id="month-spent-sub"></div>
     </div>
@@ -797,7 +838,14 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
 
   <!-- Monthly Spending Chart -->
   <section class="chart-section">
-    <h2>Monthly Spending</h2>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+      <h2 id="chart-title" style="margin-bottom:0">Spending</h2>
+      <div class="currency-toggle" role="radiogroup" aria-label="Period mode">
+        <button type="button" id="btn-period-month" onclick="setPeriodMode('month')" style="font-size:0.78rem;padding:5px 12px;min-width:auto;min-height:30px">Month</button>
+        <button type="button" id="btn-period-payday" class="active" onclick="setPeriodMode('payday')" style="font-size:0.78rem;padding:5px 12px;min-width:auto;min-height:30px">23 – 23</button>
+      </div>
+    </div>
+    <div id="chart-period-hint" style="font-size:0.75rem;color:var(--text-muted);margin-bottom:8px"></div>
     <div class="chart-container">
       <canvas id="monthly-chart" aria-label="Monthly spending bar chart"></canvas>
     </div>
@@ -838,6 +886,7 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
             <th class="sortable" data-sort="price" onclick="sortSpending('price',this)">Unit Price</th>
             <th class="sortable" data-sort="total" onclick="sortSpending('total',this)">Total</th>
             <th class="sortable" data-sort="source" onclick="sortSpending('source',this)">Source</th>
+            <th class="sortable" data-sort="delivery" onclick="sortSpending('delivery',this)">Delivery</th>
             <th class="sortable" data-sort="store" onclick="sortSpending('store',this)">Store</th>
             <th>Actions</th>
           </tr>
@@ -1097,7 +1146,7 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
         <div class="form-row">
           <div class="form-group">
             <label for="form-source">Source Type</label>
-            <select id="form-source" required>
+            <select id="form-source" required onchange="toggleDeliveryFee()">
               <option value="store">Store</option>
               <option value="online">Online</option>
               <option value="market">Market</option>
@@ -1111,6 +1160,13 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
               </select>
               <button type="button" class="btn-add-store" onclick="addNewStore()" aria-label="Add new store" title="Add new store">+</button>
             </div>
+          </div>
+        </div>
+        <div class="form-group" id="delivery-fee-group" style="display:none">
+          <label for="form-delivery-fee">Delivery Fee</label>
+          <div class="price-input-wrap">
+            <span class="currency-label" id="form-delivery-symbol">&pound;</span>
+            <input type="number" id="form-delivery-fee" step="0.01" min="0" placeholder="0.00" value="" oninput="recalcPrice()">
           </div>
         </div>
         <div class="form-group">
@@ -1212,6 +1268,8 @@ let editingId = null;
 let sortCol = 'date'; // spending table sort column
 let sortDir = 'desc'; // spending table sort direction
 let monthlyChart = null;
+let periodMode = 'payday'; // 'month' or 'payday' (23-to-23)
+let chartFilterActive = false; // whether chart click filter is active
 
 // Exchange rates: everything relative to GBP as base
 // Fallback rates used if API fails
@@ -1257,6 +1315,18 @@ function updateThemeColor() {
 /* ===== Init ===== */
 document.addEventListener('DOMContentLoaded', init);
 
+var _lastMobileTable = null;
+window.addEventListener('resize', function() {
+  var m = isMobileTable();
+  if (_lastMobileTable !== null && _lastMobileTable !== m) {
+    _lastMobileTable = m;
+    renderTable();
+    renderCardAll();
+  } else {
+    _lastMobileTable = m;
+  }
+});
+
 async function init() {
   updateThemeButton();
   updateThemeColor();
@@ -1270,6 +1340,7 @@ async function init() {
   showLoader(false);
   renderAll();
   initCardTracker();
+  _lastMobileTable = isMobileTable();
 }
 
 async function loadData() {
@@ -1303,6 +1374,7 @@ function migratePurchases() {
   purchases.forEach(p => {
     if (!p.quantity) p.quantity = 1;
     if (p.price_usd === undefined) p.price_usd = parseFloat((p.price_gbp * rates.usd).toFixed(2));
+    if (p.delivery_fee_gbp === undefined) p.delivery_fee_gbp = 0;
   });
 }
 
@@ -1436,19 +1508,32 @@ function renderAll() {
 
 /* ===== Dashboard ===== */
 function renderDashboard() {
-  const total = purchases.reduce((s, e) => s + getDisplayPrice(e) * (e.quantity || 1), 0);
+  const total = purchases.reduce((s, e) => s + getDisplayPrice(e) * (e.quantity || 1) + convertToDisplay(e.delivery_fee_gbp || 0), 0);
   const now = new Date();
-  const thisMonth = purchases.filter(e => {
-    const d = new Date(e.date);
-    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-  });
-  const monthTotal = thisMonth.reduce((s, e) => s + getDisplayPrice(e) * (e.quantity || 1), 0);
+  let thisMonth, periodLabel;
+  if (periodMode === 'payday') {
+    // Current pay period: 23rd of last month to 22nd of this month
+    const pStart = new Date(now.getFullYear(), now.getMonth() - 1, 23);
+    const pEnd = new Date(now.getFullYear(), now.getMonth(), 22);
+    const pStartStr = pStart.toISOString().split('T')[0];
+    const pEndStr = pEnd.toISOString().split('T')[0];
+    thisMonth = purchases.filter(e => e.date >= pStartStr && e.date <= pEndStr);
+    periodLabel = 'this period';
+  } else {
+    thisMonth = purchases.filter(e => {
+      const d = new Date(e.date);
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+    });
+    periodLabel = 'this month';
+  }
+  const monthTotal = thisMonth.reduce((s, e) => s + getDisplayPrice(e) * (e.quantity || 1) + convertToDisplay(e.delivery_fee_gbp || 0), 0);
   const totalItems = purchases.reduce((s, e) => s + (e.quantity || 1), 0);
 
   document.getElementById('total-spent').textContent = currencySymbol() + total.toFixed(2);
   document.getElementById('total-spent-sub').textContent = purchases.length + ' purchase' + (purchases.length !== 1 ? 's' : '') + ' total';
+  document.getElementById('period-label').textContent = periodMode === 'payday' ? 'This Period' : 'This Month';
   document.getElementById('month-spent').textContent = currencySymbol() + monthTotal.toFixed(2);
-  document.getElementById('month-spent-sub').textContent = thisMonth.length + ' purchase' + (thisMonth.length !== 1 ? 's' : '') + ' this month';
+  document.getElementById('month-spent-sub').textContent = thisMonth.length + ' purchase' + (thisMonth.length !== 1 ? 's' : '') + ' ' + periodLabel;
   document.getElementById('purchase-count').textContent = totalItems;
   document.getElementById('purchase-count-sub').textContent = purchases.length + ' line item' + (purchases.length !== 1 ? 's' : '');
 
@@ -1456,7 +1541,7 @@ function renderDashboard() {
   const spendBySource = { store: 0, online: 0, market: 0 };
   purchases.forEach(e => {
     if (spendBySource[e.source] !== undefined) {
-      spendBySource[e.source] += getDisplayPrice(e) * (e.quantity || 1);
+      spendBySource[e.source] += getDisplayPrice(e) * (e.quantity || 1) + convertToDisplay(e.delivery_fee_gbp || 0);
     }
   });
   const totalSpend = total || 1;
@@ -1471,23 +1556,70 @@ function renderDashboard() {
   }).join('');
 }
 
+/* ===== Period Mode ===== */
+function setPeriodMode(mode) {
+  periodMode = mode;
+  document.getElementById('btn-period-month').classList.toggle('active', mode === 'month');
+  document.getElementById('btn-period-payday').classList.toggle('active', mode === 'payday');
+  clearChartFilter();
+  renderChart();
+}
+
+function clearChartFilter() {
+  chartFilterActive = false;
+  document.getElementById('chart-period-hint').textContent = '';
+  document.getElementById('date-from').value = '';
+  document.getElementById('date-to').value = '';
+  dateFrom = '';
+  dateTo = '';
+}
+
+function getChartPeriods() {
+  const now = new Date();
+  const periods = [];
+
+  if (periodMode === 'month') {
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const start = new Date(d.getFullYear(), d.getMonth(), 1);
+      const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+      periods.push({
+        label: d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' }),
+        startDate: start.toISOString().split('T')[0],
+        endDate: end.toISOString().split('T')[0]
+      });
+    }
+  } else {
+    // Payday mode: 23rd of prev month to 22nd of current month
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const start = new Date(d.getFullYear(), d.getMonth() - 1, 23);
+      const end = new Date(d.getFullYear(), d.getMonth(), 22);
+      const label = start.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' – ' + end.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
+      periods.push({
+        label: d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' }),
+        fullLabel: label,
+        startDate: start.toISOString().split('T')[0],
+        endDate: end.toISOString().split('T')[0]
+      });
+    }
+  }
+  return periods;
+}
+
 /* ===== Chart ===== */
 function renderChart() {
   const canvas = document.getElementById('monthly-chart');
   const ctx = canvas.getContext('2d');
 
-  const now = new Date();
-  const months = [];
-  for (let i = 11; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    months.push({ year: d.getFullYear(), month: d.getMonth(), label: d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' }) });
-  }
+  const periods = getChartPeriods();
+  const chartTitle = document.getElementById('chart-title');
+  chartTitle.textContent = periodMode === 'month' ? 'Monthly Spending' : 'Payday Spending (23rd – 22nd)';
 
-  const data = months.map(m => {
+  const data = periods.map(p => {
     return purchases.filter(e => {
-      const d = new Date(e.date);
-      return d.getFullYear() === m.year && d.getMonth() === m.month;
-    }).reduce((s, e) => s + getDisplayPrice(e) * (e.quantity || 1), 0);
+      return e.date >= p.startDate && e.date <= p.endDate;
+    }).reduce((s, e) => s + getDisplayPrice(e) * (e.quantity || 1) + convertToDisplay(e.delivery_fee_gbp || 0), 0);
   });
 
   if (monthlyChart) monthlyChart.destroy();
@@ -1499,7 +1631,7 @@ function renderChart() {
   monthlyChart = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: months.map(m => m.label),
+      labels: periods.map(p => p.label),
       datasets: [{
         label: 'Spending',
         data: data,
@@ -1514,6 +1646,28 @@ function renderChart() {
       responsive: true,
       maintainAspectRatio: false,
       animation: { duration: 600, easing: 'easeOutQuart' },
+      onClick: function(evt, elements) {
+        if (elements.length > 0) {
+          const idx = elements[0].index;
+          const period = periods[idx];
+          // If clicking the same period that's already filtered, clear the filter
+          if (chartFilterActive && dateFrom === period.startDate && dateTo === period.endDate) {
+            clearChartFilter();
+            currentPage = 1;
+            renderTable();
+            return;
+          }
+          chartFilterActive = true;
+          dateFrom = period.startDate;
+          dateTo = period.endDate;
+          document.getElementById('date-from').value = period.startDate;
+          document.getElementById('date-to').value = period.endDate;
+          document.getElementById('chart-period-hint').textContent = 'Showing: ' + (period.fullLabel || period.label) + '  (click bar again to clear)';
+          currentPage = 1;
+          renderTable();
+          document.querySelector('.table-wrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -1525,6 +1679,10 @@ function renderChart() {
           cornerRadius: 8,
           padding: 12,
           callbacks: {
+            title: function(items) {
+              const idx = items[0].dataIndex;
+              return periods[idx].fullLabel || periods[idx].label;
+            },
             label: function(c) { return currencySymbol() + c.parsed.y.toFixed(2); }
           }
         }
@@ -1586,6 +1744,7 @@ function getFiltered() {
       case 'price': va = getDisplayPrice(a); vb = getDisplayPrice(b); break;
       case 'total': va = getDisplayPrice(a) * (a.quantity || 1); vb = getDisplayPrice(b) * (b.quantity || 1); break;
       case 'source': va = a.source; vb = b.source; break;
+      case 'delivery': va = a.delivery_fee_gbp || 0; vb = b.delivery_fee_gbp || 0; break;
       case 'store': va = (a.store_name || '').toLowerCase(); vb = (b.store_name || '').toLowerCase(); break;
       default: va = a.date; vb = b.date;
     }
@@ -1628,30 +1787,38 @@ function renderTable() {
   const start = (currentPage - 1) * PAGE_SIZE;
   const pageItems = filtered.slice(start, start + PAGE_SIZE);
 
+  var mobile = isMobileTable();
+  var actionsHtml = function(entry) {
+    return '<div class="actions-cell">' +
+      '<button type="button" class="btn-icon" onclick="openEditModal(\'' + entry.id + '\')" aria-label="Edit ' + escapeHtml(entry.item) + '">' +
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
+      '</button>' +
+      '<button type="button" class="btn-icon delete" onclick="confirmDelete(\'' + entry.id + '\')" aria-label="Delete ' + escapeHtml(entry.item) + '">' +
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>' +
+      '</button></div>';
+  };
   tbody.innerHTML = pageItems.map(entry => {
     const dateFormatted = new Date(entry.date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     const qty = entry.quantity || 1;
     const unitPrice = getDisplayPrice(entry);
     const lineTotal = unitPrice * qty;
-    return `<tr>
-      <td data-label="Date">${dateFormatted}</td>
-      <td data-label="Item" class="item-cell">${escapeHtml(entry.item)}</td>
-      <td data-label="Qty"><span class="qty-badge">${qty}</span></td>
-      <td data-label="Price">${currencySymbol()}${unitPrice.toFixed(2)}</td>
-      <td data-label="Total"><strong>${currencySymbol()}${lineTotal.toFixed(2)}</strong></td>
-      <td data-label="Source"><span class="source-badge ${entry.source}">${entry.source}</span></td>
-      <td data-label="Store">${entry.store_name ? `<span class="store-tag" title="${escapeHtml(entry.store_name)}">${escapeHtml(entry.store_name)}</span>` : '<span class="store-tag">-</span>'}</td>
-      <td data-label="">
-        <div class="actions-cell">
-          <button type="button" class="btn-icon" onclick="openEditModal('${entry.id}')" aria-label="Edit ${escapeHtml(entry.item)}">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          </button>
-          <button type="button" class="btn-icon delete" onclick="confirmDelete('${entry.id}')" aria-label="Delete ${escapeHtml(entry.item)}">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-          </button>
-        </div>
-      </td>
-    </tr>`;
+    var firstTd = mobile
+      ? '<td data-label="Date" class="date-with-actions">' + dateFormatted + actionsHtml(entry) + '</td>'
+      : '<td data-label="Date">' + dateFormatted + '</td>';
+    var lastTd = mobile
+      ? '<td data-label="" class="actions-col-placeholder"></td>'
+      : '<td data-label="">' + actionsHtml(entry) + '</td>';
+    return '<tr>' +
+      firstTd +
+      '<td data-label="Item" class="item-cell">' + escapeHtml(entry.item) + '</td>' +
+      '<td data-label="Qty"><span class="qty-badge">' + qty + '</span></td>' +
+      '<td data-label="Price">' + currencySymbol() + unitPrice.toFixed(2) + '</td>' +
+      '<td data-label="Total"><strong>' + currencySymbol() + lineTotal.toFixed(2) + '</strong></td>' +
+      '<td data-label="Source"><span class="source-badge ' + entry.source + '">' + entry.source + '</span></td>' +
+      '<td data-label="Delivery">' + (entry.delivery_fee_gbp ? currencySymbol() + convertToDisplay(entry.delivery_fee_gbp).toFixed(2) : '<span style="color:var(--text-muted)">-</span>') + '</td>' +
+      '<td data-label="Store">' + (entry.store_name ? '<span class="store-tag" title="' + escapeHtml(entry.store_name) + '">' + escapeHtml(entry.store_name) + '</span>' : '<span class="store-tag">-</span>') + '</td>' +
+      lastTd +
+    '</tr>';
   }).join('');
 
   if (totalPages <= 1) {
@@ -1683,6 +1850,10 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+function isMobileTable() {
+  return window.matchMedia('(max-width:900px)').matches;
+}
+
 /* ===== Filters ===== */
 function applyFilters() {
   searchQuery = document.getElementById('search-input').value;
@@ -1697,6 +1868,8 @@ function clearDateFilter() {
   document.getElementById('date-to').value = '';
   dateFrom = '';
   dateTo = '';
+  chartFilterActive = false;
+  document.getElementById('chart-period-hint').textContent = '';
   currentPage = 1;
   renderTable();
 }
@@ -1724,7 +1897,9 @@ function openAddModal() {
   document.getElementById('form-notes').value = '';
   document.getElementById('form-auto-calc').textContent = '';
   document.getElementById('form-currency-symbol').innerHTML = '&pound;';
+  document.getElementById('form-delivery-fee').value = '';
   populateStoreDropdown('');
+  toggleDeliveryFee();
   openModal();
 }
 
@@ -1743,7 +1918,9 @@ function openEditModal(id) {
   document.getElementById('form-source').value = entry.source;
   document.getElementById('form-notes').value = entry.notes || '';
   document.getElementById('form-currency-symbol').innerHTML = '&pound;';
+  document.getElementById('form-delivery-fee').value = entry.delivery_fee_gbp ? entry.delivery_fee_gbp.toFixed(2) : '';
   populateStoreDropdown(entry.store_name || '');
+  toggleDeliveryFee();
   recalcPrice();
   openModal();
 }
@@ -1783,6 +1960,7 @@ function recalcPrice() {
   const qty = parseInt(document.getElementById('form-quantity').value) || 1;
   const symbols = { gbp: '&pound;', eur: '&euro;', usd: '$' };
   document.getElementById('form-currency-symbol').innerHTML = symbols[cur];
+  document.getElementById('form-delivery-symbol').innerHTML = symbols[cur];
 
   if (isNaN(priceVal) || priceVal <= 0) {
     document.getElementById('form-auto-calc').textContent = '';
@@ -1813,6 +1991,14 @@ function recalcPrice() {
   document.getElementById('form-auto-calc').textContent = text;
 }
 
+function toggleDeliveryFee() {
+  const source = document.getElementById('form-source').value;
+  const group = document.getElementById('delivery-fee-group');
+  group.style.display = (source === 'online') ? 'block' : 'none';
+  if (source !== 'online') document.getElementById('form-delivery-fee').value = '';
+  recalcPrice();
+}
+
 /* ===== Save ===== */
 function savePurchase(e) {
   e.preventDefault();
@@ -1827,6 +2013,18 @@ function savePurchase(e) {
   else if (cur === 'eur') gbp = price / rates.eur;
   else gbp = price / rates.usd;
 
+  // Delivery fee (online only)
+  const source = document.getElementById('form-source').value;
+  let deliveryFeeGbp = 0;
+  if (source === 'online') {
+    const delVal = parseFloat(document.getElementById('form-delivery-fee').value);
+    if (!isNaN(delVal) && delVal > 0) {
+      if (cur === 'gbp') deliveryFeeGbp = delVal;
+      else if (cur === 'eur') deliveryFeeGbp = delVal / rates.eur;
+      else deliveryFeeGbp = delVal / rates.usd;
+    }
+  }
+
   const entry = {
     id: editingId || crypto.randomUUID(),
     date: document.getElementById('form-date').value,
@@ -1835,9 +2033,10 @@ function savePurchase(e) {
     price_gbp: parseFloat(gbp.toFixed(2)),
     price_eur: parseFloat((gbp * rates.eur).toFixed(2)),
     price_usd: parseFloat((gbp * rates.usd).toFixed(2)),
-    source: document.getElementById('form-source').value,
+    source: source,
     store_name: document.getElementById('form-store-name').value || '',
     notes: document.getElementById('form-notes').value.trim(),
+    delivery_fee_gbp: parseFloat(deliveryFeeGbp.toFixed(2)),
   };
 
   if (editingId) {
@@ -1914,6 +2113,7 @@ function importJSON(event) {
       data.forEach(p => {
         if (!p.quantity) p.quantity = 1;
         if (p.price_usd === undefined) p.price_usd = parseFloat((p.price_gbp * rates.usd).toFixed(2));
+        if (p.delivery_fee_gbp === undefined) p.delivery_fee_gbp = 0;
       });
       purchases = data;
       saveToStorage();
@@ -2231,23 +2431,32 @@ function renderCardTable() {
   const start = (ctPage - 1) * CT_PAGE_SIZE;
   const pageItems = filtered.slice(start, start + CT_PAGE_SIZE);
 
+  var mobile = isMobileTable();
+  var cardActionsHtml = function(entry) {
+    return '<div class="actions-cell">' +
+      '<button type="button" class="btn-icon" onclick="openEditCardModal(\'' + entry.id + '\')" aria-label="Edit entry">' +
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
+      '</button>' +
+      '<button type="button" class="btn-icon delete" onclick="confirmCardDelete(\'' + entry.id + '\')" aria-label="Delete entry">' +
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>' +
+      '</button></div>';
+  };
   tbody.innerHTML = pageItems.map(entry => {
-    const dateFormatted = new Date(entry.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    var dateFormatted = new Date(entry.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    var firstTd = mobile
+      ? '<td data-label="Date" class="date-with-actions">' + dateFormatted + cardActionsHtml(entry) + '</td>'
+      : '<td data-label="Date">' + dateFormatted + '</td>';
+    var lastTd = mobile
+      ? '<td data-label="" class="actions-col-placeholder"></td>'
+      : '<td data-label="">' + cardActionsHtml(entry) + '</td>';
     return '<tr>' +
-      '<td data-label="Date">' + dateFormatted + '</td>' +
+      firstTd +
       '<td data-label="Series"><strong>' + escapeHtml(entry.series) + '</strong></td>' +
       '<td data-label="Weight" class="weight-cell">' + entry.weight.toFixed(3) + 'g</td>' +
       '<td data-label="Cover">' + (entry.cover_picture ? escapeHtml(entry.cover_picture) : '<span style="color:var(--text-muted)">-</span>') + '</td>' +
       '<td data-label="Bipped">' + (entry.bipped ? '<span class="badge badge-bipped">Bipped</span>' : '<span class="badge badge-no">No</span>') + '</td>' +
       '<td data-label="Rare">' + (entry.had_rare ? '<span class="badge badge-yes">Rare</span>' : '<span class="badge badge-no">No</span>') + '</td>' +
-      '<td data-label=""><div class="actions-cell">' +
-        '<button type="button" class="btn-icon" onclick="openEditCardModal(\'' + entry.id + '\')" aria-label="Edit entry">' +
-          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
-        '</button>' +
-        '<button type="button" class="btn-icon delete" onclick="confirmCardDelete(\'' + entry.id + '\')" aria-label="Delete entry">' +
-          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>' +
-        '</button>' +
-      '</div></td>' +
+      lastTd +
     '</tr>';
   }).join('');
 
