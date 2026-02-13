@@ -1773,39 +1773,48 @@ function renderAll() {
 }
 
 /* ===== Dashboard ===== */
+function getDashboardPurchases() {
+  if (chartFilterActive && dateFrom && dateTo) {
+    return purchases.filter(function(e) { return e.date >= dateFrom && e.date <= dateTo; });
+  }
+  return purchases;
+}
+
 function renderDashboard() {
-  const total = purchases.reduce((s, e) => s + getDisplayPrice(e) * (e.quantity || 1) + convertToDisplay(e.delivery_fee_gbp || 0), 0);
+  const list = getDashboardPurchases();
+  const total = list.reduce((s, e) => s + getDisplayPrice(e) * (e.quantity || 1) + convertToDisplay(e.delivery_fee_gbp || 0), 0);
   const now = new Date();
   let thisMonth, periodLabel;
-  if (periodMode === 'payday') {
-    // Current pay period: 23rd of last month to 22nd of this month
+  if (chartFilterActive && dateFrom && dateTo) {
+    thisMonth = list;
+    periodLabel = 'this period';
+  } else if (periodMode === 'payday') {
     const pStart = new Date(now.getFullYear(), now.getMonth() - 1, 23);
     const pEnd = new Date(now.getFullYear(), now.getMonth(), 22);
     const pStartStr = pStart.toISOString().split('T')[0];
     const pEndStr = pEnd.toISOString().split('T')[0];
-    thisMonth = purchases.filter(e => e.date >= pStartStr && e.date <= pEndStr);
+    thisMonth = list.filter(e => e.date >= pStartStr && e.date <= pEndStr);
     periodLabel = 'this period';
   } else {
-    thisMonth = purchases.filter(e => {
+    thisMonth = list.filter(e => {
       const d = new Date(e.date);
       return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
     });
     periodLabel = 'this month';
   }
   const monthTotal = thisMonth.reduce((s, e) => s + getDisplayPrice(e) * (e.quantity || 1) + convertToDisplay(e.delivery_fee_gbp || 0), 0);
-  const totalItems = purchases.reduce((s, e) => s + (e.quantity || 1), 0);
+  const totalItems = list.reduce((s, e) => s + (e.quantity || 1), 0);
 
   document.getElementById('total-spent').textContent = currencySymbol() + total.toFixed(2);
-  document.getElementById('total-spent-sub').textContent = purchases.length + ' purchase' + (purchases.length !== 1 ? 's' : '') + ' total';
-  document.getElementById('period-label').textContent = periodMode === 'payday' ? 'This Period' : 'This Month';
+  document.getElementById('total-spent-sub').textContent = list.length + ' purchase' + (list.length !== 1 ? 's' : '') + ' total';
+  document.getElementById('period-label').textContent = chartFilterActive ? 'This Period' : (periodMode === 'payday' ? 'This Period' : 'This Month');
   document.getElementById('month-spent').textContent = currencySymbol() + monthTotal.toFixed(2);
   document.getElementById('month-spent-sub').textContent = thisMonth.length + ' purchase' + (thisMonth.length !== 1 ? 's' : '') + ' ' + periodLabel;
   document.getElementById('purchase-count').textContent = totalItems;
-  document.getElementById('purchase-count-sub').textContent = purchases.length + ' line item' + (purchases.length !== 1 ? 's' : '');
+  document.getElementById('purchase-count-sub').textContent = list.length + ' line item' + (list.length !== 1 ? 's' : '');
 
-  // Source breakdown by spend
   const spendBySource = { store: 0, online: 0, market: 0 };
-  purchases.forEach(e => {
+  list.forEach(e => {
     if (spendBySource[e.source] !== undefined) {
       spendBySource[e.source] += getDisplayPrice(e) * (e.quantity || 1) + convertToDisplay(e.delivery_fee_gbp || 0);
     }
@@ -1829,6 +1838,8 @@ function setPeriodMode(mode) {
   document.getElementById('btn-period-payday').classList.toggle('active', mode === 'payday');
   clearChartFilter();
   renderChart();
+  renderDashboard();
+  renderTable();
 }
 
 function clearChartFilter() {
@@ -1916,10 +1927,10 @@ function renderChart() {
         if (elements.length > 0) {
           const idx = elements[0].index;
           const period = periods[idx];
-          // If clicking the same period that's already filtered, clear the filter
           if (chartFilterActive && dateFrom === period.startDate && dateTo === period.endDate) {
             clearChartFilter();
             currentPage = 1;
+            renderDashboard();
             renderTable();
             return;
           }
@@ -1930,8 +1941,8 @@ function renderChart() {
           document.getElementById('date-to').value = period.endDate;
           document.getElementById('chart-period-hint').textContent = 'Showing: ' + (period.fullLabel || period.label) + '  (click bar again to clear)';
           currentPage = 1;
+          renderDashboard();
           renderTable();
-          document.querySelector('.table-wrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
       },
       plugins: {
@@ -2139,6 +2150,7 @@ function clearDateFilter() {
   chartFilterActive = false;
   document.getElementById('chart-period-hint').textContent = '';
   currentPage = 1;
+  renderDashboard();
   renderTable();
 }
 

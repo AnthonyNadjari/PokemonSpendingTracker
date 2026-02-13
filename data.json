@@ -104,5 +104,19 @@
     "store_name": "Pokemon Center",
     "notes": "",
     "delivery_fee_gbp": 0
+  },
+  {
+    "id": "smyths-sv9-2026-02-07",
+    "date": "2026-02-07",
+    "item": "Pokemon TCG SV9 Booster",
+    "quantity": 5,
+    "price_gbp": 4.29,
+    "price_eur": 5.02,
+    "price_usd": 5.41,
+    "source": "store",
+    "store_name": "Smyths Toys Superstores",
+    "notes": "Old Kent Road, Southernwood Retail Park",
+    "input_currency": "gbp",
+    "delivery_fee_gbp": 0
   }
 ]
