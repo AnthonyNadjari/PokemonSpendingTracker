@@ -1552,24 +1552,9 @@ function saveCardsToSync() {
 }
 
 async function loadData(cloud) {
-  if (isSyncConfigured() && cloud) {
-    purchases = Array.isArray(cloud.purchases) ? cloud.purchases : [];
-    if (purchases.length === 0) {
-      try {
-        var res = await fetch('./data.json?_=' + Date.now());
-        if (res.ok) {
-          var seed = await res.json();
-          if (Array.isArray(seed) && seed.length) {
-            purchases = seed;
-            migratePurchases();
-            savePurchasesToSync();
-            return;
-          }
-        }
-      } catch (e) {}
-    } else {
-      migratePurchases();
-    }
+  if (isSyncConfigured()) {
+    purchases = (cloud && Array.isArray(cloud.purchases)) ? cloud.purchases : [];
+    migratePurchases();
     return;
   }
   var saved = localStorage.getItem('poketracker_purchases');
@@ -1610,12 +1595,15 @@ function migratePurchases() {
 }
 
 function saveToStorage() {
+  if (isSyncConfigured()) {
+    savePurchasesToSync();
+    return;
+  }
   try {
     localStorage.setItem('poketracker_purchases', JSON.stringify(purchases));
   } catch (e) {
     console.warn('Could not save to localStorage:', e);
   }
-  if (isSyncConfigured()) savePurchasesToSync();
 }
 
 /* ===== Store Names ===== */
@@ -2469,21 +2457,8 @@ function initCardTracker() {
 }
 
 async function loadCardEntries(cloud) {
-  if (isSyncConfigured() && cloud) {
-    cardEntries = Array.isArray(cloud.cards) ? cloud.cards : [];
-    if (cardEntries.length === 0) {
-      try {
-        var res = await fetch('./card_data.json?_=' + Date.now());
-        if (res.ok) {
-          var seed = await res.json();
-          if (Array.isArray(seed) && seed.length) {
-            cardEntries = seed;
-            saveCardsToSync();
-            return;
-          }
-        }
-      } catch (e) {}
-    }
+  if (isSyncConfigured()) {
+    cardEntries = (cloud && Array.isArray(cloud.cards)) ? cloud.cards : [];
     return;
   }
   try {
@@ -2510,10 +2485,13 @@ async function loadCardEntries(cloud) {
 }
 
 function saveCardEntries() {
+  if (isSyncConfigured()) {
+    saveCardsToSync();
+    return;
+  }
   try {
     localStorage.setItem('poketracker_cards', JSON.stringify(cardEntries));
   } catch(e) { console.warn('Could not save card entries:', e); }
-  if (isSyncConfigured()) saveCardsToSync();
 }
 
 function loadCardSeries() {
