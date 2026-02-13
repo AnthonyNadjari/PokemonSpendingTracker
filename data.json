@@ -118,5 +118,17 @@
     "notes": "Old Kent Road, Southernwood Retail Park",
     "input_currency": "gbp",
     "delivery_fee_gbp": 0
+  },
+  {
+    "id": "asda-mini-tins-2026-02-07",
+    "date": "2026-02-07",
+    "item": "Mini Tins",
+    "quantity": 1,
+    "price_gbp": 39.92,
+    "source": "store",
+    "store_name": "Asda",
+    "notes": "",
+    "input_currency": "gbp",
+    "delivery_fee_gbp": 0
   }
 ]
