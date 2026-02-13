@@ -1343,10 +1343,19 @@ async function init() {
   _lastMobileTable = isMobileTable();
 }
 
+const SEED_VERSION = 3; // bump this whenever data.json changes
+
 async function loadData() {
+  const savedVersion = parseInt(localStorage.getItem('poketracker_seed_version') || '0');
+
+  // If seed version changed, wipe old data and reload from data.json
+  if (savedVersion < SEED_VERSION) {
+    localStorage.removeItem('poketracker_purchases');
+    localStorage.removeItem('poketracker_seeded');
+  }
+
   // Try localStorage first (persists user edits across refreshes)
   const saved = localStorage.getItem('poketracker_purchases');
-  const seeded = localStorage.getItem('poketracker_seeded');
   if (saved) {
     try {
       purchases = JSON.parse(saved);
@@ -1357,12 +1366,8 @@ async function loadData() {
       console.warn('Invalid localStorage data, falling back to data.json');
     }
   }
-  // If already seeded once before but localStorage was cleared, start empty
-  if (seeded) {
-    purchases = [];
-    return;
-  }
-  // Fall back to data.json (initial seed data — first visit only)
+
+  // Load from data.json
   try {
     const res = await fetch('./data.json');
     if (!res.ok) throw new Error('Failed to load data');
@@ -1370,7 +1375,7 @@ async function loadData() {
     if (!Array.isArray(purchases)) purchases = [];
     migratePurchases();
     saveToStorage();
-    localStorage.setItem('poketracker_seeded', '1');
+    localStorage.setItem('poketracker_seed_version', String(SEED_VERSION));
   } catch (e) {
     console.warn('Could not load data.json:', e);
     purchases = [];
@@ -1388,7 +1393,7 @@ function migratePurchases() {
 function saveToStorage() {
   try {
     localStorage.setItem('poketracker_purchases', JSON.stringify(purchases));
-    localStorage.setItem('poketracker_seeded', '1');
+    localStorage.setItem('poketracker_seed_version', String(SEED_VERSION));
   } catch (e) {
     console.warn('Could not save to localStorage:', e);
   }
