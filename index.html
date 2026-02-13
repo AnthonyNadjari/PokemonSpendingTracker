@@ -804,6 +804,13 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
     <span id="rate-timestamp" style="margin-left:auto;font-size:0.75rem;color:var(--text-muted)"></span>
   </div>
 
+  <!-- Sync: same spends + cards on all devices. Copy link and open on phone/laptop. -->
+  <div id="sync-bar" style="margin-top:8px;padding:10px 12px;background:var(--bg-tertiary);border-radius:var(--radius-sm);font-size:0.8rem;color:var(--text-secondary)">
+    <span>Same data everywhere.</span>
+    <button type="button" onclick="copySyncLink()" id="sync-copy-btn" style="margin-left:8px;padding:4px 10px;font-size:0.75rem" class="btn btn-primary">Copy link</button>
+    <span style="margin-left:12px;color:var(--text-muted)">Open that link on your phone or laptop to see the same spends and cards.</span>
+  </div>
+
   <!-- Dashboard Cards -->
   <section class="dashboard" aria-label="Spending summary">
     <div class="card">
@@ -1258,6 +1265,10 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
+/* Supabase sync: one database for spends + cards across devices. */
+window.POKETRACKER_SYNC_URL = 'https://dccsgzsjxooepyzirsul.supabase.co';
+window.POKETRACKER_SYNC_KEY = 'sb_publishable_zIG99yoipG24tMZBEPM3VA_OzdjaeU7';
+
 /* ===== State ===== */
 let purchases = [];
 let currency = 'gbp'; // 'gbp' | 'eur' | 'usd'
@@ -1346,15 +1357,129 @@ async function init() {
   _lastMobileTable = isMobileTable();
 }
 
+function getSyncLink() {
+  const id = getSyncId();
+  if (!id) return '';
+  const base = location.origin + location.pathname;
+  const sep = base.indexOf('?') >= 0 ? '&' : '?';
+  return base + sep + 'sync=' + encodeURIComponent(id);
+}
+
+function copySyncLink() {
+  const link = getSyncLink();
+  if (!link) return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(link).then(function() { showToast('Link copied. Open it on another device for the same data.'); }).catch(function() { fallbackCopy(link); });
+  } else { fallbackCopy(link); }
+}
+function fallbackCopy(str) {
+  const ta = document.createElement('textarea');
+  ta.value = str;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); showToast('Link copied.'); } catch (e) {}
+  document.body.removeChild(ta);
+}
+
+function isSyncConfigured() {
+  const url = window.POKETRACKER_SYNC_URL;
+  const key = window.POKETRACKER_SYNC_KEY;
+  return typeof url === 'string' && url.trim() !== '' && typeof key === 'string' && key.trim() !== '';
+}
+
+const SYNC_STORAGE_KEY = 'poketracker_sync_id';
+const SYNC_TABLE = 'store';
+const SYNC_SUFFIX_PURCHASES = '_purchases';
+const SYNC_SUFFIX_CARDS = '_cards';
+
+function getSyncId() {
+  const fromUrl = typeof location !== 'undefined' && location.search ? (function() {
+    const m = location.search.match(/[?&]sync=([^&]+)/);
+    return m ? decodeURIComponent(m[1]).trim() : null;
+  })() : null;
+  if (fromUrl) {
+    try { localStorage.setItem(SYNC_STORAGE_KEY, fromUrl); } catch (e) {}
+    return fromUrl;
+  }
+  try {
+    const id = localStorage.getItem(SYNC_STORAGE_KEY);
+    if (id) return id;
+    const newId = crypto.randomUUID ? crypto.randomUUID() : 'pt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 12);
+    localStorage.setItem(SYNC_STORAGE_KEY, newId);
+    return newId;
+  } catch (e) { return null; }
+}
+
+async function loadFromSync() {
+  if (!isSyncConfigured()) return { purchases: null, cards: null };
+  const base = window.POKETRACKER_SYNC_URL.replace(/\/$/, '');
+  const key = window.POKETRACKER_SYNC_KEY;
+  const sid = getSyncId();
+  if (!sid) return { purchases: null, cards: null };
+  const idPurchases = sid + SYNC_SUFFIX_PURCHASES;
+  const idCards = sid + SYNC_SUFFIX_CARDS;
+  try {
+    const res = await fetch(base + '/rest/v1/' + SYNC_TABLE + '?id=in.(' + encodeURIComponent(idPurchases) + ',' + encodeURIComponent(idCards) + ')', {
+      headers: { 'apikey': key, 'Authorization': 'Bearer ' + key, 'Accept': 'application/json' }
+    });
+    if (!res.ok) return { purchases: null, cards: null };
+    const rows = await res.json();
+    var out = { purchases: null, cards: null };
+    if (Array.isArray(rows)) {
+      rows.forEach(function(r) {
+        if (r.id === idPurchases && r.data) out.purchases = r.data;
+        if (r.id === idCards && r.data) out.cards = r.data;
+      });
+    }
+    return out;
+  } catch (e) { return { purchases: null, cards: null }; }
+}
+
+async function saveToSync() {
+  if (!isSyncConfigured()) return;
+  const base = window.POKETRACKER_SYNC_URL.replace(/\/$/, '');
+  const key = window.POKETRACKER_SYNC_KEY;
+  const sid = getSyncId();
+  if (!sid) return;
+  try {
+    await fetch(base + '/rest/v1/' + SYNC_TABLE, {
+      method: 'POST',
+      headers: {
+        'apikey': key,
+        'Authorization': 'Bearer ' + key,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify([
+        { id: sid + SYNC_SUFFIX_PURCHASES, data: purchases },
+        { id: sid + SYNC_SUFFIX_CARDS, data: typeof cardEntries !== 'undefined' ? cardEntries : [] }
+      ])
+    });
+  } catch (e) { /* ignore */ }
+}
+
 async function loadData() {
-  // Prefer localStorage always. Seed is only used to bootstrap when the user has no data.
+  if (isSyncConfigured()) {
+    const cloud = await loadFromSync();
+    if (Array.isArray(cloud.purchases)) {
+      purchases = cloud.purchases;
+      migratePurchases();
+      try { localStorage.setItem('poketracker_purchases', JSON.stringify(purchases)); } catch (e) {}
+      return;
+    }
+  }
+
+  // Same rule as card tracker: localStorage is source of truth. Seed only when no saved data (we do not merge seed so deletions stick).
   const saved = localStorage.getItem('poketracker_purchases');
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length >= 0) {
+      if (Array.isArray(parsed)) {
         purchases = parsed;
         migratePurchases();
+        if (isSyncConfigured()) saveToSync();
         return;
       }
     } catch (e) {
@@ -1362,7 +1487,7 @@ async function loadData() {
     }
   }
 
-  // First visit or empty: bootstrap from data.json if available
+  // No valid localStorage: bootstrap from data.json once
   try {
     const res = await fetch('./data.json?_=' + Date.now());
     if (res.ok) {
@@ -1371,6 +1496,7 @@ async function loadData() {
         purchases = seedData;
         migratePurchases();
         saveToStorage();
+        if (isSyncConfigured()) saveToSync();
         return;
       }
     }
@@ -1378,6 +1504,7 @@ async function loadData() {
 
   purchases = [];
 }
+
 
 function migratePurchases() {
   purchases.forEach(p => {
@@ -1396,6 +1523,7 @@ function saveToStorage() {
   } catch (e) {
     console.warn('Could not save to localStorage:', e);
   }
+  if (isSyncConfigured()) saveToSync();
 }
 
 /* ===== Store Names ===== */
@@ -2238,12 +2366,21 @@ async function initCardTracker() {
 }
 
 async function loadCardEntries() {
+  if (isSyncConfigured()) {
+    const cloud = await loadFromSync();
+    if (Array.isArray(cloud.cards)) {
+      cardEntries = cloud.cards;
+      try { localStorage.setItem('poketracker_cards', JSON.stringify(cardEntries)); } catch (e) {}
+      return;
+    }
+  }
   const existingIds = new Set();
   try {
     const saved = localStorage.getItem('poketracker_cards');
     if (saved) {
-      cardEntries = JSON.parse(saved);
-      if (Array.isArray(cardEntries) && cardEntries.length > 0) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) {
+        cardEntries = parsed;
         let changed = false;
         cardEntries.forEach(c => {
           existingIds.add(c.id);
@@ -2253,7 +2390,7 @@ async function loadCardEntries() {
           }
         });
         if (changed) saveCardEntries();
-        // Merge any new entries from seed file (e.g. Melodelfe, Zoroark)
+        // Optionally merge new entries from seed (only add by ID, never replace what you have)
         try {
           const res = await fetch('./card_data.json');
           if (res.ok) {
@@ -2275,7 +2412,7 @@ async function loadCardEntries() {
       }
     }
   } catch(e) { /* fall through */ }
-  // Fall back to card_data.json seed file
+  // No valid localStorage: bootstrap from seed
   try {
     const res = await fetch('./card_data.json');
     if (!res.ok) throw new Error('No seed file');
@@ -2295,6 +2432,7 @@ function saveCardEntries() {
   try {
     localStorage.setItem('poketracker_cards', JSON.stringify(cardEntries));
   } catch(e) { console.warn('Could not save card entries:', e); }
+  if (isSyncConfigured()) saveToSync();
 }
 
 function loadCardSeries() {

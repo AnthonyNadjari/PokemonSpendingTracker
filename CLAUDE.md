@@ -54,8 +54,7 @@ A single-page web app (pure HTML/CSS/JS, no build step) for tracking Pokemon TCG
 ## Important Notes
 - All prices stored in GBP as base; EUR/USD computed from rates
 - The user gets paid on the 23rd, so "23–23" period mode is the default
-- Data is loaded from localStorage first; falls back to JSON seed files on first visit
-- The app merges new seed entries by ID to avoid duplicates
+- **Sync:** Spends and cards are synced via Supabase (`store` table: rows `{syncId}_purchases` and `{syncId}_cards`). Same data on all devices when you open the "Copy link" URL. localStorage is used as cache; cloud is source of truth when sync is configured.
 - The user is UK-based, prices are typically in GBP
 - Store names are persisted separately and auto-synced from purchases
 
