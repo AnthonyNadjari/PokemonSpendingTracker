@@ -884,7 +884,7 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
             <th class="sortable" data-sort="item" onclick="sortSpending('item',this)">Item</th>
             <th class="sortable" data-sort="qty" onclick="sortSpending('qty',this)">Qty</th>
             <th class="sortable" data-sort="price" onclick="sortSpending('price',this)">Unit Price</th>
-            <th class="sortable" data-sort="total" onclick="sortSpending('total',this)">Total</th>
+            <th class="sortable" data-sort="total" onclick="sortSpending('total',this)">Total (incl. del.)</th>
             <th class="sortable" data-sort="source" onclick="sortSpending('source',this)">Source</th>
             <th class="sortable" data-sort="delivery" onclick="sortSpending('delivery',this)">Delivery</th>
             <th class="sortable" data-sort="store" onclick="sortSpending('store',this)">Store</th>
@@ -1346,6 +1346,7 @@ async function init() {
 async function loadData() {
   // Try localStorage first (persists user edits across refreshes)
   const saved = localStorage.getItem('poketracker_purchases');
+  const seeded = localStorage.getItem('poketracker_seeded');
   if (saved) {
     try {
       purchases = JSON.parse(saved);
@@ -1356,7 +1357,12 @@ async function loadData() {
       console.warn('Invalid localStorage data, falling back to data.json');
     }
   }
-  // Fall back to data.json (initial seed data)
+  // If already seeded once before but localStorage was cleared, start empty
+  if (seeded) {
+    purchases = [];
+    return;
+  }
+  // Fall back to data.json (initial seed data — first visit only)
   try {
     const res = await fetch('./data.json');
     if (!res.ok) throw new Error('Failed to load data');
@@ -1364,6 +1370,7 @@ async function loadData() {
     if (!Array.isArray(purchases)) purchases = [];
     migratePurchases();
     saveToStorage();
+    localStorage.setItem('poketracker_seeded', '1');
   } catch (e) {
     console.warn('Could not load data.json:', e);
     purchases = [];
@@ -1381,6 +1388,7 @@ function migratePurchases() {
 function saveToStorage() {
   try {
     localStorage.setItem('poketracker_purchases', JSON.stringify(purchases));
+    localStorage.setItem('poketracker_seeded', '1');
   } catch (e) {
     console.warn('Could not save to localStorage:', e);
   }
@@ -1742,7 +1750,7 @@ function getFiltered() {
       case 'item': va = a.item.toLowerCase(); vb = b.item.toLowerCase(); break;
       case 'qty': va = a.quantity || 1; vb = b.quantity || 1; break;
       case 'price': va = getDisplayPrice(a); vb = getDisplayPrice(b); break;
-      case 'total': va = getDisplayPrice(a) * (a.quantity || 1); vb = getDisplayPrice(b) * (b.quantity || 1); break;
+      case 'total': va = getDisplayPrice(a) * (a.quantity || 1) + convertToDisplay(a.delivery_fee_gbp || 0); vb = getDisplayPrice(b) * (b.quantity || 1) + convertToDisplay(b.delivery_fee_gbp || 0); break;
       case 'source': va = a.source; vb = b.source; break;
       case 'delivery': va = a.delivery_fee_gbp || 0; vb = b.delivery_fee_gbp || 0; break;
       case 'store': va = (a.store_name || '').toLowerCase(); vb = (b.store_name || '').toLowerCase(); break;
@@ -1801,7 +1809,8 @@ function renderTable() {
     const dateFormatted = new Date(entry.date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     const qty = entry.quantity || 1;
     const unitPrice = getDisplayPrice(entry);
-    const lineTotal = unitPrice * qty;
+    const deliveryDisplay = convertToDisplay(entry.delivery_fee_gbp || 0);
+    const lineTotal = unitPrice * qty + deliveryDisplay;
     var firstTd = mobile
       ? '<td data-label="Date" class="date-with-actions">' + dateFormatted + actionsHtml(entry) + '</td>'
       : '<td data-label="Date">' + dateFormatted + '</td>';
