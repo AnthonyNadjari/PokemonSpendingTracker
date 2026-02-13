@@ -1,70 +1,5 @@
 [
   {
-    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-    "date": "2025-12-15",
-    "item": "Charizard VMAX Alt Art",
-    "quantity": 1,
-    "price_gbp": 145.00,
-    "price_eur": 169.65,
-    "price_usd": 182.70,
-    "source": "online",
-    "store_name": "TCGPlayer",
-    "notes": "Near mint condition, great deal",
-    "delivery_fee_gbp": 0
-  },
-  {
-    "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-    "date": "2026-01-03",
-    "item": "Pikachu Illustrator Proxy",
-    "quantity": 2,
-    "price_gbp": 25.00,
-    "price_eur": 29.25,
-    "price_usd": 31.50,
-    "source": "market",
-    "store_name": "Camden Market",
-    "notes": "Fun novelty cards from local market",
-    "delivery_fee_gbp": 0
-  },
-  {
-    "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
-    "date": "2026-01-10",
-    "item": "Evolving Skies Booster Box",
-    "quantity": 1,
-    "price_gbp": 189.99,
-    "price_eur": 222.29,
-    "price_usd": 239.39,
-    "source": "store",
-    "store_name": "Pokemon Center",
-    "notes": "",
-    "delivery_fee_gbp": 0
-  },
-  {
-    "id": "d4e5f6a7-b8c9-0123-defa-234567890123",
-    "date": "2026-01-18",
-    "item": "Umbreon VMAX Secret Rare",
-    "quantity": 1,
-    "price_gbp": 78.50,
-    "price_eur": 91.85,
-    "price_usd": 98.91,
-    "source": "online",
-    "store_name": "eBay",
-    "notes": "Graded PSA 9",
-    "delivery_fee_gbp": 0
-  },
-  {
-    "id": "e5f6a7b8-c9d0-1234-efab-345678901234",
-    "date": "2026-01-25",
-    "item": "Scarlet & Violet ETB",
-    "quantity": 3,
-    "price_gbp": 38.99,
-    "price_eur": 45.62,
-    "price_usd": 49.13,
-    "source": "store",
-    "store_name": "Smyths",
-    "notes": "Elite Trainer Boxes with promos",
-    "delivery_fee_gbp": 0
-  },
-  {
     "id": "11111111-aaaa-bbbb-cccc-111111111111",
     "date": "2026-01-29",
     "item": "Pokemon TCG: Mega Evolution Ascended Heroes - Tech Sticker Collection - Ghastly",
@@ -76,6 +11,19 @@
     "store_name": "Very",
     "notes": "Order Ref: 300009484774",
     "delivery_fee_gbp": 3.99
+  },
+  {
+    "id": "66666666-aaaa-bbbb-cccc-666666666666",
+    "date": "2026-01-30",
+    "item": "Coffret 3 Boosters - Collection Journée Pokémon 2026 : Pikachu",
+    "quantity": 1,
+    "price_gbp": 21.28,
+    "price_eur": 24.90,
+    "price_usd": 26.81,
+    "source": "online",
+    "store_name": "UltraJeux",
+    "notes": "Order #1057713",
+    "delivery_fee_gbp": 1.54
   },
   {
     "id": "22222222-aaaa-bbbb-cccc-222222222222",
