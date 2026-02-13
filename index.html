@@ -1347,62 +1347,36 @@ async function init() {
 }
 
 async function loadData() {
-  // Always fetch data.json (cache-busted) to detect changes
-  let seedData = null;
-  let seedHash = null;
-  try {
-    const res = await fetch('./data.json?_=' + Date.now());
-    if (res.ok) {
-      const text = await res.text();
-      seedHash = simpleHash(text);
-      seedData = JSON.parse(text);
-      if (!Array.isArray(seedData)) seedData = null;
-    }
-  } catch (e) { /* ignore */ }
-
-  const savedHash = localStorage.getItem('poketracker_seed_hash');
-
-  // If seed file changed since last load, replace localStorage with new seed
-  if (seedHash && seedHash !== savedHash) {
-    purchases = seedData;
-    migratePurchases();
-    saveToStorage();
-    localStorage.setItem('poketracker_seed_hash', seedHash);
-    return;
-  }
-
-  // Otherwise, use localStorage
+  // Prefer localStorage always. Seed is only used to bootstrap when the user has no data.
   const saved = localStorage.getItem('poketracker_purchases');
   if (saved) {
     try {
-      purchases = JSON.parse(saved);
-      if (!Array.isArray(purchases)) purchases = [];
-      migratePurchases();
-      return;
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length >= 0) {
+        purchases = parsed;
+        migratePurchases();
+        return;
+      }
     } catch (e) {
       console.warn('Invalid localStorage data');
     }
   }
 
-  // First visit, no localStorage, use seed
-  if (seedData) {
-    purchases = seedData;
-    migratePurchases();
-    saveToStorage();
-    localStorage.setItem('poketracker_seed_hash', seedHash);
-  } else {
-    purchases = [];
-  }
-}
+  // First visit or empty: bootstrap from data.json if available
+  try {
+    const res = await fetch('./data.json?_=' + Date.now());
+    if (res.ok) {
+      const seedData = await res.json();
+      if (Array.isArray(seedData)) {
+        purchases = seedData;
+        migratePurchases();
+        saveToStorage();
+        return;
+      }
+    }
+  } catch (e) { /* ignore */ }
 
-function simpleHash(str) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const ch = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + ch;
-    hash |= 0;
-  }
-  return String(hash);
+  purchases = [];
 }
 
 function migratePurchases() {
@@ -1410,6 +1384,9 @@ function migratePurchases() {
     if (!p.quantity) p.quantity = 1;
     if (p.price_usd === undefined) p.price_usd = parseFloat((p.price_gbp * rates.usd).toFixed(2));
     if (p.delivery_fee_gbp === undefined) p.delivery_fee_gbp = 0;
+    if (!p.input_currency) p.input_currency = 'gbp';
+    if (p.delivery_fee_eur === undefined && p.delivery_fee_gbp) p.delivery_fee_eur = parseFloat((p.delivery_fee_gbp * rates.eur).toFixed(2));
+    if (p.delivery_fee_usd === undefined && p.delivery_fee_gbp) p.delivery_fee_usd = parseFloat((p.delivery_fee_gbp * rates.usd).toFixed(2));
   });
 }
 
@@ -1524,8 +1501,42 @@ function formatPrice(priceGbp) {
   return currencySymbol() + val.toFixed(2);
 }
 
+// Per-entry: show price in the currency the user entered for that purchase
+function getEntryDisplayCurrency(entry) {
+  return entry.input_currency || 'gbp';
+}
+function getEntryDisplaySymbol(entry) {
+  const c = getEntryDisplayCurrency(entry);
+  if (c === 'eur') return '\u20AC';
+  if (c === 'usd') return '$';
+  return '\u00A3';
+}
+function getEntryDisplayPrice(entry) {
+  const c = getEntryDisplayCurrency(entry);
+  if (c === 'eur' && entry.price_eur != null) return entry.price_eur;
+  if (c === 'usd' && entry.price_usd != null) return entry.price_usd;
+  return entry.price_gbp;
+}
+function getEntryDisplayDelivery(entry) {
+  if (!entry.delivery_fee_gbp) return 0;
+  const c = getEntryDisplayCurrency(entry);
+  if (c === 'eur' && entry.delivery_fee_eur != null) return entry.delivery_fee_eur;
+  if (c === 'usd' && entry.delivery_fee_usd != null) return entry.delivery_fee_usd;
+  return entry.delivery_fee_gbp;
+}
+
+// Global display (dashboard/chart): use selected display currency
 function getDisplayPrice(entry) {
+  if (currency === 'eur' && entry.price_eur) return entry.price_eur;
+  if (currency === 'usd' && entry.price_usd) return entry.price_usd;
   return convertToDisplay(entry.price_gbp);
+}
+
+function getDisplayDelivery(entry) {
+  if (!entry.delivery_fee_gbp) return 0;
+  if (currency === 'eur' && entry.delivery_fee_eur) return entry.delivery_fee_eur;
+  if (currency === 'usd' && entry.delivery_fee_usd) return entry.delivery_fee_usd;
+  return convertToDisplay(entry.delivery_fee_gbp);
 }
 
 function currencySymbol() {
@@ -1835,8 +1846,9 @@ function renderTable() {
   tbody.innerHTML = pageItems.map(entry => {
     const dateFormatted = new Date(entry.date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     const qty = entry.quantity || 1;
-    const unitPrice = getDisplayPrice(entry);
-    const deliveryDisplay = convertToDisplay(entry.delivery_fee_gbp || 0);
+    const entrySym = getEntryDisplaySymbol(entry);
+    const unitPrice = getEntryDisplayPrice(entry);
+    const deliveryDisplay = getEntryDisplayDelivery(entry);
     const lineTotal = unitPrice * qty + deliveryDisplay;
     var firstTd = mobile
       ? '<td data-label="Date" class="date-with-actions">' + dateFormatted + actionsHtml(entry) + '</td>'
@@ -1848,10 +1860,10 @@ function renderTable() {
       firstTd +
       '<td data-label="Item" class="item-cell">' + escapeHtml(entry.item) + '</td>' +
       '<td data-label="Qty"><span class="qty-badge">' + qty + '</span></td>' +
-      '<td data-label="Price">' + currencySymbol() + unitPrice.toFixed(2) + '</td>' +
-      '<td data-label="Total"><strong>' + currencySymbol() + lineTotal.toFixed(2) + '</strong></td>' +
+      '<td data-label="Price">' + entrySym + unitPrice.toFixed(2) + '</td>' +
+      '<td data-label="Total"><strong>' + entrySym + lineTotal.toFixed(2) + '</strong></td>' +
       '<td data-label="Source"><span class="source-badge ' + entry.source + '">' + entry.source + '</span></td>' +
-      '<td data-label="Delivery">' + (entry.delivery_fee_gbp ? currencySymbol() + convertToDisplay(entry.delivery_fee_gbp).toFixed(2) : '<span style="color:var(--text-muted)">-</span>') + '</td>' +
+      '<td data-label="Delivery">' + (entry.delivery_fee_gbp ? entrySym + getEntryDisplayDelivery(entry).toFixed(2) : '<span style="color:var(--text-muted)">-</span>') + '</td>' +
       '<td data-label="Store">' + (entry.store_name ? '<span class="store-tag" title="' + escapeHtml(entry.store_name) + '">' + escapeHtml(entry.store_name) + '</span>' : '<span class="store-tag">-</span>') + '</td>' +
       lastTd +
     '</tr>';
@@ -1943,18 +1955,22 @@ function openEditModal(id) {
   const entry = purchases.find(e => e.id === id);
   if (!entry) return;
   editingId = id;
+  const inputCur = entry.input_currency || 'gbp';
+  const symbols = { gbp: '&pound;', eur: '&euro;', usd: '$' };
+  const priceInCur = inputCur === 'gbp' ? entry.price_gbp : (inputCur === 'eur' ? entry.price_eur : entry.price_usd);
+  const delInCur = entry.delivery_fee_gbp ? (inputCur === 'gbp' ? entry.delivery_fee_gbp : (inputCur === 'eur' ? (entry.delivery_fee_eur != null ? entry.delivery_fee_eur : entry.delivery_fee_gbp * rates.eur) : (entry.delivery_fee_usd != null ? entry.delivery_fee_usd : entry.delivery_fee_gbp * rates.usd))) : '';
   document.getElementById('modal-title').textContent = 'Edit Purchase';
   document.getElementById('form-submit-btn').textContent = 'Save Changes';
   document.getElementById('form-id').value = entry.id;
   document.getElementById('form-date').value = entry.date;
   document.getElementById('form-item').value = entry.item;
-  document.getElementById('form-currency').value = 'gbp';
-  document.getElementById('form-price').value = entry.price_gbp.toFixed(2);
+  document.getElementById('form-currency').value = inputCur;
+  document.getElementById('form-price').value = (priceInCur != null ? priceInCur : entry.price_gbp).toFixed(2);
   document.getElementById('form-quantity').value = entry.quantity || 1;
   document.getElementById('form-source').value = entry.source;
   document.getElementById('form-notes').value = entry.notes || '';
-  document.getElementById('form-currency-symbol').innerHTML = '&pound;';
-  document.getElementById('form-delivery-fee').value = entry.delivery_fee_gbp ? entry.delivery_fee_gbp.toFixed(2) : '';
+  document.getElementById('form-currency-symbol').innerHTML = symbols[inputCur];
+  document.getElementById('form-delivery-fee').value = delInCur ? (typeof delInCur === 'number' ? delInCur.toFixed(2) : delInCur) : '';
   populateStoreDropdown(entry.store_name || '');
   toggleDeliveryFee();
   recalcPrice();
@@ -2069,10 +2085,13 @@ function savePurchase(e) {
     price_gbp: parseFloat(gbp.toFixed(2)),
     price_eur: parseFloat((gbp * rates.eur).toFixed(2)),
     price_usd: parseFloat((gbp * rates.usd).toFixed(2)),
+    input_currency: cur,
     source: source,
     store_name: document.getElementById('form-store-name').value || '',
     notes: document.getElementById('form-notes').value.trim(),
     delivery_fee_gbp: parseFloat(deliveryFeeGbp.toFixed(2)),
+    delivery_fee_eur: parseFloat((deliveryFeeGbp * rates.eur).toFixed(2)),
+    delivery_fee_usd: parseFloat((deliveryFeeGbp * rates.usd).toFixed(2)),
   };
 
   if (editingId) {

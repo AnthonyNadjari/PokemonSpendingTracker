@@ -23,7 +23,9 @@
     "source": "online",
     "store_name": "UltraJeux",
     "notes": "Order #1057713",
-    "delivery_fee_gbp": 1.54
+    "delivery_fee_gbp": 1.54,
+    "delivery_fee_eur": 1.80,
+    "delivery_fee_usd": 1.94
   },
   {
     "id": "22222222-aaaa-bbbb-cccc-222222222222",
