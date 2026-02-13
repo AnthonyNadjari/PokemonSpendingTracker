@@ -11,6 +11,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PokeTracker">
 <meta name="theme-color" content="#0d1117">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Exo+2:wght@600;700;800&display=swap" rel="stylesheet">
@@ -1343,18 +1346,32 @@ async function init() {
   _lastMobileTable = isMobileTable();
 }
 
-const SEED_VERSION = 3; // bump this whenever data.json changes
-
 async function loadData() {
-  const savedVersion = parseInt(localStorage.getItem('poketracker_seed_version') || '0');
+  // Always fetch data.json (cache-busted) to detect changes
+  let seedData = null;
+  let seedHash = null;
+  try {
+    const res = await fetch('./data.json?_=' + Date.now());
+    if (res.ok) {
+      const text = await res.text();
+      seedHash = simpleHash(text);
+      seedData = JSON.parse(text);
+      if (!Array.isArray(seedData)) seedData = null;
+    }
+  } catch (e) { /* ignore */ }
 
-  // If seed version changed, wipe old data and reload from data.json
-  if (savedVersion < SEED_VERSION) {
-    localStorage.removeItem('poketracker_purchases');
-    localStorage.removeItem('poketracker_seeded');
+  const savedHash = localStorage.getItem('poketracker_seed_hash');
+
+  // If seed file changed since last load, replace localStorage with new seed
+  if (seedHash && seedHash !== savedHash) {
+    purchases = seedData;
+    migratePurchases();
+    saveToStorage();
+    localStorage.setItem('poketracker_seed_hash', seedHash);
+    return;
   }
 
-  // Try localStorage first (persists user edits across refreshes)
+  // Otherwise, use localStorage
   const saved = localStorage.getItem('poketracker_purchases');
   if (saved) {
     try {
@@ -1363,23 +1380,29 @@ async function loadData() {
       migratePurchases();
       return;
     } catch (e) {
-      console.warn('Invalid localStorage data, falling back to data.json');
+      console.warn('Invalid localStorage data');
     }
   }
 
-  // Load from data.json
-  try {
-    const res = await fetch('./data.json');
-    if (!res.ok) throw new Error('Failed to load data');
-    purchases = await res.json();
-    if (!Array.isArray(purchases)) purchases = [];
+  // First visit, no localStorage, use seed
+  if (seedData) {
+    purchases = seedData;
     migratePurchases();
     saveToStorage();
-    localStorage.setItem('poketracker_seed_version', String(SEED_VERSION));
-  } catch (e) {
-    console.warn('Could not load data.json:', e);
+    localStorage.setItem('poketracker_seed_hash', seedHash);
+  } else {
     purchases = [];
   }
+}
+
+function simpleHash(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + ch;
+    hash |= 0;
+  }
+  return String(hash);
 }
 
 function migratePurchases() {
@@ -1393,7 +1416,6 @@ function migratePurchases() {
 function saveToStorage() {
   try {
     localStorage.setItem('poketracker_purchases', JSON.stringify(purchases));
-    localStorage.setItem('poketracker_seed_version', String(SEED_VERSION));
   } catch (e) {
     console.warn('Could not save to localStorage:', e);
   }
