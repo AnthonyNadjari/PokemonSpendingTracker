@@ -779,6 +779,19 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
   </div>
 </header>
 
+<!-- Sync bar: always visible, same data on all devices -->
+<div id="sync-bar" class="container" style="padding:10px 16px;background:var(--bg-tertiary);border-bottom:1px solid var(--border-color);font-size:0.85rem;color:var(--text-secondary)">
+  <span>Same data on phone and laptop.</span>
+  <button type="button" onclick="copySyncLink()" style="margin-left:10px;padding:6px 12px;font-size:0.8rem" class="btn btn-primary">Copy link</button>
+  <span style="margin-left:10px;color:var(--text-muted)">Open that link on your other device to see the same spends and cards.</span>
+</div>
+<!-- Shown when Supabase tables are missing: create them once in SQL Editor -->
+<div id="sync-setup-bar" class="container" style="display:none;padding:10px 16px;background:var(--bg-warning, #fef3c7);border-bottom:1px solid var(--border-color);font-size:0.85rem">
+  <span>Create tables once:</span>
+  <a id="link-sql-editor" href="https://supabase.com/dashboard/project/dccsgzsjxooepyzirsul/sql/new" target="_blank" rel="noopener" style="margin-left:10px;padding:6px 12px;font-size:0.8rem" class="btn btn-primary">Open SQL Editor</a>
+  <span style="margin-left:10px;color:var(--text-muted)">Paste the SQL from <code>SETUP-SUPABASE.md</code> and click Run, then reload this page.</span>
+</div>
+
 <!-- Main Navigation Tabs -->
 <nav class="main-tabs container" role="tablist" aria-label="Main navigation">
   <button type="button" class="main-tab active" data-tab="spending" role="tab" aria-selected="true" onclick="switchMainTab('spending')">
@@ -802,13 +815,6 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
     <span class="rate-pill" id="rate-gbp-usd"><span class="dot live"></span> 1 GBP = ... USD</span>
     <button type="button" onclick="fetchRates()" id="rate-refresh-btn">Refresh</button>
     <span id="rate-timestamp" style="margin-left:auto;font-size:0.75rem;color:var(--text-muted)"></span>
-  </div>
-
-  <!-- Sync: same spends + cards on all devices. Copy link and open on phone/laptop. -->
-  <div id="sync-bar" style="margin-top:8px;padding:10px 12px;background:var(--bg-tertiary);border-radius:var(--radius-sm);font-size:0.8rem;color:var(--text-secondary)">
-    <span>Same data everywhere.</span>
-    <button type="button" onclick="copySyncLink()" id="sync-copy-btn" style="margin-left:8px;padding:4px 10px;font-size:0.75rem" class="btn btn-primary">Copy link</button>
-    <span style="margin-left:12px;color:var(--text-muted)">Open that link on your phone or laptop to see the same spends and cards.</span>
   </div>
 
   <!-- Dashboard Cards -->
@@ -1265,9 +1271,9 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-/* Supabase sync: one database for spends + cards across devices. */
+/* Supabase: source of truth. Key must be the anon PUBLIC JWT from Project Settings → API (starts with eyJ...). */
 window.POKETRACKER_SYNC_URL = 'https://dccsgzsjxooepyzirsul.supabase.co';
-window.POKETRACKER_SYNC_KEY = 'sb_publishable_zIG99yoipG24tMZBEPM3VA_OzdjaeU7';
+window.POKETRACKER_SYNC_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjY3NnenNqeG9vZXB5emlyc3VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwMTg1NjEsImV4cCI6MjA4NjU5NDU2MX0._87ALMlLFK_b8pjuARDymzWg5GyyGG6dsBhhsewi8Eo';
 
 /* ===== State ===== */
 let purchases = [];
@@ -1347,9 +1353,17 @@ async function init() {
   updateHeaderAddButton('spending');
   showLoader(true);
   loadStoreNames();
-  // Fetch rates and data in parallel
-  const [ratesResult] = await Promise.allSettled([fetchRates(), loadData()]);
-  // Collect any store names from existing purchases
+  var cloud = null;
+  if (isSyncConfigured()) cloud = await loadFromSync();
+  if (cloud && cloud.tablesMissing) {
+    var setupBar = document.getElementById('sync-setup-bar');
+    var syncBar = document.getElementById('sync-bar');
+    if (setupBar) setupBar.style.display = 'block';
+    if (syncBar) syncBar.style.display = 'none';
+  }
+  await loadData(cloud);
+  await loadCardEntries(cloud);
+  await Promise.allSettled([fetchRates()]);
   syncStoreNamesFromPurchases();
   showLoader(false);
   renderAll();
@@ -1384,19 +1398,23 @@ function fallbackCopy(str) {
 }
 
 function isSyncConfigured() {
-  const url = window.POKETRACKER_SYNC_URL;
-  const key = window.POKETRACKER_SYNC_KEY;
-  return typeof url === 'string' && url.trim() !== '' && typeof key === 'string' && key.trim() !== '';
+  var url = window.POKETRACKER_SYNC_URL;
+  var key = window.POKETRACKER_SYNC_KEY;
+  if (typeof url === 'string' && url.trim() !== '' && typeof key === 'string' && key.trim() !== '') {
+    SUPABASE_BASE = url.replace(/\/$/, '');
+    SUPABASE_KEY = key;
+    return true;
+  }
+  return false;
 }
 
 const SYNC_STORAGE_KEY = 'poketracker_sync_id';
-const SYNC_TABLE = 'store';
-const SYNC_SUFFIX_PURCHASES = '_purchases';
-const SYNC_SUFFIX_CARDS = '_cards';
+var SUPABASE_BASE = '';
+var SUPABASE_KEY = '';
 
 function getSyncId() {
-  const fromUrl = typeof location !== 'undefined' && location.search ? (function() {
-    const m = location.search.match(/[?&]sync=([^&]+)/);
+  var fromUrl = typeof location !== 'undefined' && location.search ? (function() {
+    var m = location.search.match(/[?&]sync=([^&]+)/);
     return m ? decodeURIComponent(m[1]).trim() : null;
   })() : null;
   if (fromUrl) {
@@ -1404,104 +1422,178 @@ function getSyncId() {
     return fromUrl;
   }
   try {
-    const id = localStorage.getItem(SYNC_STORAGE_KEY);
+    var id = localStorage.getItem(SYNC_STORAGE_KEY);
     if (id) return id;
-    const newId = crypto.randomUUID ? crypto.randomUUID() : 'pt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 12);
-    localStorage.setItem(SYNC_STORAGE_KEY, newId);
-    return newId;
-  } catch (e) { return null; }
+    var defaultId = 'main';
+    try { localStorage.setItem(SYNC_STORAGE_KEY, defaultId); } catch (e) {}
+    return defaultId;
+  } catch (e) { return 'main'; }
+}
+
+function supabaseHeaders() {
+  return { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Accept': 'application/json', 'Content-Type': 'application/json' };
+}
+
+function rowToPurchase(r) {
+  return {
+    id: r.id,
+    date: r.date,
+    item: r.item,
+    quantity: r.quantity || 1,
+    price_gbp: Number(r.price_gbp),
+    price_eur: r.price_eur != null ? Number(r.price_eur) : undefined,
+    price_usd: r.price_usd != null ? Number(r.price_usd) : undefined,
+    input_currency: r.input_currency || 'gbp',
+    source: r.source || 'store',
+    store_name: r.store_name || '',
+    notes: r.notes || '',
+    delivery_fee_gbp: Number(r.delivery_fee_gbp || 0),
+    delivery_fee_eur: r.delivery_fee_eur != null ? Number(r.delivery_fee_eur) : undefined,
+    delivery_fee_usd: r.delivery_fee_usd != null ? Number(r.delivery_fee_usd) : undefined
+  };
+}
+
+function rowToCard(r) {
+  return {
+    id: r.id,
+    series: r.series || '',
+    weight: Number(r.weight || 0),
+    cover_picture: r.cover_picture || '',
+    bipped: !!r.bipped,
+    had_rare: !!r.had_rare,
+    created_at: r.created_at
+  };
+}
+
+async function loadFromSyncWithId(sid) {
+  if (!isSyncConfigured() || !sid) return { purchases: null, cards: null, tablesMissing: false };
+  try {
+    var [pRes, cRes] = await Promise.all([
+      fetch(SUPABASE_BASE + '/rest/v1/purchases?sync_id=eq.' + encodeURIComponent(sid) + '&order=date.desc', { headers: supabaseHeaders() }),
+      fetch(SUPABASE_BASE + '/rest/v1/card_entries?sync_id=eq.' + encodeURIComponent(sid) + '&order=created_at.desc', { headers: supabaseHeaders() })
+    ]);
+    var tablesMissing = pRes.status === 404 || pRes.status === 500 || cRes.status === 404 || cRes.status === 500;
+    var purchasesData = pRes.ok ? await pRes.json() : [];
+    var cardsData = cRes.ok ? await cRes.json() : [];
+    return {
+      purchases: Array.isArray(purchasesData) ? purchasesData.map(rowToPurchase) : [],
+      cards: Array.isArray(cardsData) ? cardsData.map(rowToCard) : [],
+      tablesMissing: tablesMissing
+    };
+  } catch (e) { return { purchases: null, cards: null, tablesMissing: true }; }
 }
 
 async function loadFromSync() {
-  if (!isSyncConfigured()) return { purchases: null, cards: null };
-  const base = window.POKETRACKER_SYNC_URL.replace(/\/$/, '');
-  const key = window.POKETRACKER_SYNC_KEY;
-  const sid = getSyncId();
-  if (!sid) return { purchases: null, cards: null };
-  const idPurchases = sid + SYNC_SUFFIX_PURCHASES;
-  const idCards = sid + SYNC_SUFFIX_CARDS;
-  try {
-    const res = await fetch(base + '/rest/v1/' + SYNC_TABLE + '?id=in.(' + encodeURIComponent(idPurchases) + ',' + encodeURIComponent(idCards) + ')', {
-      headers: { 'apikey': key, 'Authorization': 'Bearer ' + key, 'Accept': 'application/json' }
-    });
-    if (!res.ok) return { purchases: null, cards: null };
-    const rows = await res.json();
-    var out = { purchases: null, cards: null };
-    if (Array.isArray(rows)) {
-      rows.forEach(function(r) {
-        if (r.id === idPurchases && r.data) out.purchases = r.data;
-        if (r.id === idCards && r.data) out.cards = r.data;
-      });
-    }
-    return out;
-  } catch (e) { return { purchases: null, cards: null }; }
-}
-
-async function saveToSync() {
-  if (!isSyncConfigured()) return;
-  const base = window.POKETRACKER_SYNC_URL.replace(/\/$/, '');
-  const key = window.POKETRACKER_SYNC_KEY;
-  const sid = getSyncId();
-  if (!sid) return;
-  try {
-    await fetch(base + '/rest/v1/' + SYNC_TABLE, {
-      method: 'POST',
-      headers: {
-        'apikey': key,
-        'Authorization': 'Bearer ' + key,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates'
-      },
-      body: JSON.stringify([
-        { id: sid + SYNC_SUFFIX_PURCHASES, data: purchases },
-        { id: sid + SYNC_SUFFIX_CARDS, data: typeof cardEntries !== 'undefined' ? cardEntries : [] }
-      ])
-    });
-  } catch (e) { /* ignore */ }
-}
-
-async function loadData() {
-  if (isSyncConfigured()) {
-    const cloud = await loadFromSync();
-    if (Array.isArray(cloud.purchases)) {
-      purchases = cloud.purchases;
-      migratePurchases();
-      try { localStorage.setItem('poketracker_purchases', JSON.stringify(purchases)); } catch (e) {}
-      return;
+  var sid = getSyncId();
+  var cloud = await loadFromSyncWithId(sid);
+  if (cloud && cloud.tablesMissing) return cloud;
+  var fromUrl = typeof location !== 'undefined' && location.search && location.search.match(/[?&]sync=/);
+  if (cloud && !fromUrl && cloud.purchases && cloud.cards && cloud.purchases.length === 0 && cloud.cards.length === 0 && sid !== 'main') {
+    var mainCloud = await loadFromSyncWithId('main');
+    if (mainCloud && mainCloud.purchases && mainCloud.cards && (mainCloud.purchases.length > 0 || mainCloud.cards.length > 0)) {
+      try { localStorage.setItem(SYNC_STORAGE_KEY, 'main'); } catch (e) {}
+      return mainCloud;
     }
   }
+  return cloud;
+}
 
-  // Same rule as card tracker: localStorage is source of truth. Seed only when no saved data (we do not merge seed so deletions stick).
-  const saved = localStorage.getItem('poketracker_purchases');
+function savePurchasesToSync() {
+  if (!isSyncConfigured()) return;
+  var sid = getSyncId();
+  if (!sid) return;
+  var body = purchases.map(function(p) {
+    return {
+      id: p.id,
+      sync_id: sid,
+      date: p.date,
+      item: p.item,
+      quantity: p.quantity || 1,
+      price_gbp: p.price_gbp,
+      price_eur: p.price_eur,
+      price_usd: p.price_usd,
+      input_currency: p.input_currency || 'gbp',
+      source: p.source || 'store',
+      store_name: p.store_name || '',
+      notes: p.notes || '',
+      delivery_fee_gbp: p.delivery_fee_gbp || 0,
+      delivery_fee_eur: p.delivery_fee_eur,
+      delivery_fee_usd: p.delivery_fee_usd
+    };
+  });
+  fetch(SUPABASE_BASE + '/rest/v1/purchases?sync_id=eq.' + encodeURIComponent(sid), { method: 'DELETE', headers: supabaseHeaders() })
+    .then(function() {
+      if (body.length) return fetch(SUPABASE_BASE + '/rest/v1/purchases', { method: 'POST', headers: Object.assign(supabaseHeaders(), { 'Prefer': 'return=minimal' }), body: JSON.stringify(body) });
+    })
+    .catch(function() {});
+}
+
+function saveCardsToSync() {
+  if (!isSyncConfigured()) return;
+  var sid = getSyncId();
+  if (!sid) return;
+  var body = cardEntries.map(function(c) {
+    return {
+      id: c.id,
+      sync_id: sid,
+      series: c.series || '',
+      weight: c.weight,
+      cover_picture: c.cover_picture || '',
+      bipped: !!c.bipped,
+      had_rare: !!c.had_rare,
+      created_at: c.created_at || new Date().toISOString()
+    };
+  });
+  fetch(SUPABASE_BASE + '/rest/v1/card_entries?sync_id=eq.' + encodeURIComponent(sid), { method: 'DELETE', headers: supabaseHeaders() })
+    .then(function() {
+      if (body.length) return fetch(SUPABASE_BASE + '/rest/v1/card_entries', { method: 'POST', headers: Object.assign(supabaseHeaders(), { 'Prefer': 'return=minimal' }), body: JSON.stringify(body) });
+    })
+    .catch(function() {});
+}
+
+async function loadData(cloud) {
+  if (isSyncConfigured() && cloud) {
+    purchases = Array.isArray(cloud.purchases) ? cloud.purchases : [];
+    if (purchases.length === 0) {
+      try {
+        var res = await fetch('./data.json?_=' + Date.now());
+        if (res.ok) {
+          var seed = await res.json();
+          if (Array.isArray(seed) && seed.length) {
+            purchases = seed;
+            migratePurchases();
+            savePurchasesToSync();
+            return;
+          }
+        }
+      } catch (e) {}
+    } else {
+      migratePurchases();
+    }
+    return;
+  }
+  var saved = localStorage.getItem('poketracker_purchases');
   if (saved) {
     try {
-      const parsed = JSON.parse(saved);
+      var parsed = JSON.parse(saved);
       if (Array.isArray(parsed)) {
         purchases = parsed;
         migratePurchases();
-        if (isSyncConfigured()) saveToSync();
         return;
       }
-    } catch (e) {
-      console.warn('Invalid localStorage data');
-    }
+    } catch (e) {}
   }
-
-  // No valid localStorage: bootstrap from data.json once
   try {
-    const res = await fetch('./data.json?_=' + Date.now());
+    var res = await fetch('./data.json?_=' + Date.now());
     if (res.ok) {
-      const seedData = await res.json();
+      var seedData = await res.json();
       if (Array.isArray(seedData)) {
         purchases = seedData;
         migratePurchases();
-        saveToStorage();
-        if (isSyncConfigured()) saveToSync();
         return;
       }
     }
-  } catch (e) { /* ignore */ }
-
+  } catch (e) {}
   purchases = [];
 }
 
@@ -1523,7 +1615,7 @@ function saveToStorage() {
   } catch (e) {
     console.warn('Could not save to localStorage:', e);
   }
-  if (isSyncConfigured()) saveToSync();
+  if (isSyncConfigured()) savePurchasesToSync();
 }
 
 /* ===== Store Names ===== */
@@ -2338,8 +2430,7 @@ let prSortCol = 'series'; // pull rates sort column
 let prSortDir = 'asc'; // pull rates sort direction
 
 /* ===== Card Tracker Init ===== */
-async function initCardTracker() {
-  await loadCardEntries();
+function initCardTracker() {
   loadCardSeries();
   renderCardAll();
 
@@ -2365,66 +2456,44 @@ async function initCardTracker() {
   });
 }
 
-async function loadCardEntries() {
-  if (isSyncConfigured()) {
-    const cloud = await loadFromSync();
-    if (Array.isArray(cloud.cards)) {
-      cardEntries = cloud.cards;
-      try { localStorage.setItem('poketracker_cards', JSON.stringify(cardEntries)); } catch (e) {}
-      return;
+async function loadCardEntries(cloud) {
+  if (isSyncConfigured() && cloud) {
+    cardEntries = Array.isArray(cloud.cards) ? cloud.cards : [];
+    if (cardEntries.length === 0) {
+      try {
+        var res = await fetch('./card_data.json?_=' + Date.now());
+        if (res.ok) {
+          var seed = await res.json();
+          if (Array.isArray(seed) && seed.length) {
+            cardEntries = seed;
+            saveCardsToSync();
+            return;
+          }
+        }
+      } catch (e) {}
     }
+    return;
   }
-  const existingIds = new Set();
   try {
-    const saved = localStorage.getItem('poketracker_cards');
+    var saved = localStorage.getItem('poketracker_cards');
     if (saved) {
-      const parsed = JSON.parse(saved);
+      var parsed = JSON.parse(saved);
       if (Array.isArray(parsed)) {
         cardEntries = parsed;
-        let changed = false;
-        cardEntries.forEach(c => {
-          existingIds.add(c.id);
-          if (c.series === 'Scarlet & Violet') {
-            c.series = 'Scarlet & violet - Journey Together';
-            changed = true;
-          }
-        });
-        if (changed) saveCardEntries();
-        // Optionally merge new entries from seed (only add by ID, never replace what you have)
-        try {
-          const res = await fetch('./card_data.json');
-          if (res.ok) {
-            const data = await res.json();
-            if (Array.isArray(data)) {
-              let merged = false;
-              data.forEach(entry => {
-                if (entry && entry.id && !existingIds.has(entry.id)) {
-                  cardEntries.push(entry);
-                  existingIds.add(entry.id);
-                  merged = true;
-                }
-              });
-              if (merged) saveCardEntries();
-            }
-          }
-        } catch(e) { /* ignore */ }
         return;
       }
     }
-  } catch(e) { /* fall through */ }
-  // No valid localStorage: bootstrap from seed
+  } catch (e) {}
   try {
-    const res = await fetch('./card_data.json');
-    if (!res.ok) throw new Error('No seed file');
-    const data = await res.json();
-    if (Array.isArray(data) && data.length > 0) {
-      cardEntries = data;
-      saveCardEntries();
-      return;
+    var res = await fetch('./card_data.json');
+    if (res.ok) {
+      var data = await res.json();
+      if (Array.isArray(data)) {
+        cardEntries = data;
+        return;
+      }
     }
-  } catch(e) {
-    console.warn('Could not load card_data.json:', e);
-  }
+  } catch (e) {}
   cardEntries = [];
 }
 
@@ -2432,7 +2501,7 @@ function saveCardEntries() {
   try {
     localStorage.setItem('poketracker_cards', JSON.stringify(cardEntries));
   } catch(e) { console.warn('Could not save card entries:', e); }
-  if (isSyncConfigured()) saveToSync();
+  if (isSyncConfigured()) saveCardsToSync();
 }
 
 function loadCardSeries() {
