@@ -779,12 +779,6 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
   </div>
 </header>
 
-<!-- Sync bar: always visible, same data on all devices -->
-<div id="sync-bar" class="container" style="padding:10px 16px;background:var(--bg-tertiary);border-bottom:1px solid var(--border-color);font-size:0.85rem;color:var(--text-secondary)">
-  <span>Same data on phone and laptop.</span>
-  <button type="button" onclick="copySyncLink()" style="margin-left:10px;padding:6px 12px;font-size:0.8rem" class="btn btn-primary">Copy link</button>
-  <span style="margin-left:10px;color:var(--text-muted)">Open that link on your other device to see the same spends and cards.</span>
-</div>
 <!-- Shown when Supabase tables are missing: create them once in SQL Editor -->
 <div id="sync-setup-bar" class="container" style="display:none;padding:10px 16px;background:var(--bg-warning, #fef3c7);border-bottom:1px solid var(--border-color);font-size:0.85rem">
   <span>Create tables once:</span>
@@ -1357,9 +1351,7 @@ async function init() {
   if (isSyncConfigured()) cloud = await loadFromSync();
   if (cloud && cloud.tablesMissing) {
     var setupBar = document.getElementById('sync-setup-bar');
-    var syncBar = document.getElementById('sync-bar');
     if (setupBar) setupBar.style.display = 'block';
-    if (syncBar) syncBar.style.display = 'none';
   }
   await loadData(cloud);
   await loadCardEntries(cloud);
@@ -1369,32 +1361,6 @@ async function init() {
   renderAll();
   initCardTracker();
   _lastMobileTable = isMobileTable();
-}
-
-function getSyncLink() {
-  const id = getSyncId();
-  if (!id) return '';
-  const base = location.origin + location.pathname;
-  const sep = base.indexOf('?') >= 0 ? '&' : '?';
-  return base + sep + 'sync=' + encodeURIComponent(id);
-}
-
-function copySyncLink() {
-  const link = getSyncLink();
-  if (!link) return;
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(link).then(function() { showToast('Link copied. Open it on another device for the same data.'); }).catch(function() { fallbackCopy(link); });
-  } else { fallbackCopy(link); }
-}
-function fallbackCopy(str) {
-  const ta = document.createElement('textarea');
-  ta.value = str;
-  ta.style.position = 'fixed';
-  ta.style.opacity = '0';
-  document.body.appendChild(ta);
-  ta.select();
-  try { document.execCommand('copy'); showToast('Link copied.'); } catch (e) {}
-  document.body.removeChild(ta);
 }
 
 function isSyncConfigured() {
