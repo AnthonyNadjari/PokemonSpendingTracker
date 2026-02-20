@@ -1455,57 +1455,103 @@ async function loadFromSync() {
   return cloud;
 }
 
-function savePurchasesToSync() {
-  if (!isSyncConfigured()) return;
-  if (purchases.length === 0) return;
+function purchaseToRow(p) {
   var sid = getSyncId();
-  if (!sid) return;
-  var body = purchases.map(function(p) {
-    return {
-      id: p.id,
-      sync_id: sid,
-      date: p.date,
-      item: p.item,
-      quantity: p.quantity || 1,
-      price_gbp: p.price_gbp,
-      price_eur: p.price_eur,
-      price_usd: p.price_usd,
-      input_currency: p.input_currency || 'gbp',
-      source: p.source || 'store',
-      store_name: p.store_name || '',
-      notes: p.notes || '',
-      delivery_fee_gbp: p.delivery_fee_gbp || 0,
-      delivery_fee_eur: p.delivery_fee_eur,
-      delivery_fee_usd: p.delivery_fee_usd
-    };
-  });
+  return {
+    id: p.id,
+    sync_id: sid,
+    date: p.date,
+    item: p.item,
+    quantity: p.quantity || 1,
+    price_gbp: p.price_gbp,
+    price_eur: p.price_eur,
+    price_usd: p.price_usd,
+    input_currency: p.input_currency || 'gbp',
+    source: p.source || 'store',
+    store_name: p.store_name || '',
+    notes: p.notes || '',
+    delivery_fee_gbp: p.delivery_fee_gbp || 0,
+    delivery_fee_eur: p.delivery_fee_eur,
+    delivery_fee_usd: p.delivery_fee_usd
+  };
+}
+
+function savePurchasesToSync() {
+  if (!isSyncConfigured() || purchases.length === 0) return;
+  var body = purchases.map(purchaseToRow);
+  fetch(SUPABASE_BASE + '/rest/v1/purchases', {
+    method: 'POST',
+    headers: Object.assign(supabaseHeaders(), { 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
+    body: JSON.stringify(body)
+  }).catch(function() {});
+}
+
+function deletePurchaseFromSync(id) {
+  if (!isSyncConfigured()) return;
+  var sid = getSyncId();
+  fetch(SUPABASE_BASE + '/rest/v1/purchases?id=eq.' + encodeURIComponent(id) + '&sync_id=eq.' + encodeURIComponent(sid), {
+    method: 'DELETE', headers: supabaseHeaders()
+  }).catch(function() {});
+}
+
+function replaceAllPurchasesInSync() {
+  if (!isSyncConfigured() || purchases.length === 0) return;
+  var sid = getSyncId();
+  var body = purchases.map(purchaseToRow);
   fetch(SUPABASE_BASE + '/rest/v1/purchases?sync_id=eq.' + encodeURIComponent(sid), { method: 'DELETE', headers: supabaseHeaders() })
     .then(function() {
-      if (body.length) return fetch(SUPABASE_BASE + '/rest/v1/purchases', { method: 'POST', headers: Object.assign(supabaseHeaders(), { 'Prefer': 'return=minimal' }), body: JSON.stringify(body) });
+      return fetch(SUPABASE_BASE + '/rest/v1/purchases', {
+        method: 'POST',
+        headers: Object.assign(supabaseHeaders(), { 'Prefer': 'return=minimal' }),
+        body: JSON.stringify(body)
+      });
     })
     .catch(function() {});
 }
 
-function saveCardsToSync() {
-  if (!isSyncConfigured()) return;
-  if (cardEntries.length === 0) return;
+function cardToRow(c) {
   var sid = getSyncId();
-  if (!sid) return;
-  var body = cardEntries.map(function(c) {
-    return {
-      id: c.id,
-      sync_id: sid,
-      series: c.series || '',
-      weight: c.weight,
-      cover_picture: c.cover_picture || '',
-      bipped: !!c.bipped,
-      had_rare: !!c.had_rare,
-      created_at: c.created_at || new Date().toISOString()
-    };
-  });
+  return {
+    id: c.id,
+    sync_id: sid,
+    series: c.series || '',
+    weight: c.weight,
+    cover_picture: c.cover_picture || '',
+    bipped: !!c.bipped,
+    had_rare: !!c.had_rare,
+    created_at: c.created_at || new Date().toISOString()
+  };
+}
+
+function saveCardsToSync() {
+  if (!isSyncConfigured() || cardEntries.length === 0) return;
+  var body = cardEntries.map(cardToRow);
+  fetch(SUPABASE_BASE + '/rest/v1/card_entries', {
+    method: 'POST',
+    headers: Object.assign(supabaseHeaders(), { 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
+    body: JSON.stringify(body)
+  }).catch(function() {});
+}
+
+function deleteCardFromSync(id) {
+  if (!isSyncConfigured()) return;
+  var sid = getSyncId();
+  fetch(SUPABASE_BASE + '/rest/v1/card_entries?id=eq.' + encodeURIComponent(id) + '&sync_id=eq.' + encodeURIComponent(sid), {
+    method: 'DELETE', headers: supabaseHeaders()
+  }).catch(function() {});
+}
+
+function replaceAllCardsInSync() {
+  if (!isSyncConfigured() || cardEntries.length === 0) return;
+  var sid = getSyncId();
+  var body = cardEntries.map(cardToRow);
   fetch(SUPABASE_BASE + '/rest/v1/card_entries?sync_id=eq.' + encodeURIComponent(sid), { method: 'DELETE', headers: supabaseHeaders() })
     .then(function() {
-      if (body.length) return fetch(SUPABASE_BASE + '/rest/v1/card_entries', { method: 'POST', headers: Object.assign(supabaseHeaders(), { 'Prefer': 'return=minimal' }), body: JSON.stringify(body) });
+      return fetch(SUPABASE_BASE + '/rest/v1/card_entries', {
+        method: 'POST',
+        headers: Object.assign(supabaseHeaders(), { 'Prefer': 'return=minimal' }),
+        body: JSON.stringify(body)
+      });
     })
     .catch(function() {});
 }
@@ -1513,7 +1559,26 @@ function saveCardsToSync() {
 async function loadData(cloud) {
   if (isSyncConfigured()) {
     purchases = (cloud && Array.isArray(cloud.purchases)) ? cloud.purchases : [];
+    if (purchases.length === 0) {
+      // Cloud empty or failed — try seed file and re-push to Supabase
+      try {
+        var res = await fetch('./data.json?_=' + Date.now());
+        if (res.ok) {
+          var seed = await res.json();
+          if (Array.isArray(seed) && seed.length) {
+            purchases = seed;
+            migratePurchases();
+            savePurchasesToSync();
+            try { localStorage.setItem('poketracker_purchases', JSON.stringify(purchases)); } catch (e) {}
+            return;
+          }
+        }
+      } catch (e) {}
+    }
     migratePurchases();
+    if (purchases.length) {
+      try { localStorage.setItem('poketracker_purchases', JSON.stringify(purchases)); } catch (e) {}
+    }
     return;
   }
   var saved = localStorage.getItem('poketracker_purchases');
@@ -1554,15 +1619,12 @@ function migratePurchases() {
 }
 
 function saveToStorage() {
-  if (isSyncConfigured()) {
-    savePurchasesToSync();
-    return;
-  }
   try {
     localStorage.setItem('poketracker_purchases', JSON.stringify(purchases));
   } catch (e) {
     console.warn('Could not save to localStorage:', e);
   }
+  if (isSyncConfigured()) savePurchasesToSync();
 }
 
 /* ===== Store Names ===== */
@@ -2309,6 +2371,7 @@ function closeConfirm() {
 
 document.getElementById('confirm-delete-btn').addEventListener('click', function() {
   if (deleteTargetId) {
+    deletePurchaseFromSync(deleteTargetId);
     purchases = purchases.filter(e => e.id !== deleteTargetId);
     saveToStorage();
     showToast('Purchase deleted');
@@ -2350,7 +2413,8 @@ function importJSON(event) {
         if (p.delivery_fee_gbp === undefined) p.delivery_fee_gbp = 0;
       });
       purchases = data;
-      saveToStorage();
+      try { localStorage.setItem('poketracker_purchases', JSON.stringify(purchases)); } catch (ex) {}
+      replaceAllPurchasesInSync();
       syncStoreNamesFromPurchases();
       currentPage = 1;
       renderAll();
@@ -2406,6 +2470,7 @@ function initCardTracker() {
   // Card confirm delete button
   document.getElementById('card-confirm-delete-btn').addEventListener('click', function() {
     if (ctDeleteTargetId) {
+      deleteCardFromSync(ctDeleteTargetId);
       cardEntries = cardEntries.filter(c => c.id !== ctDeleteTargetId);
       saveCardEntries();
       showToast('Card entry deleted');
@@ -2418,6 +2483,24 @@ function initCardTracker() {
 async function loadCardEntries(cloud) {
   if (isSyncConfigured()) {
     cardEntries = (cloud && Array.isArray(cloud.cards)) ? cloud.cards : [];
+    if (cardEntries.length === 0) {
+      // Cloud empty or failed — try seed file and re-push to Supabase
+      try {
+        var res = await fetch('./card_data.json?_=' + Date.now());
+        if (res.ok) {
+          var seed = await res.json();
+          if (Array.isArray(seed) && seed.length) {
+            cardEntries = seed;
+            saveCardsToSync();
+            try { localStorage.setItem('poketracker_cards', JSON.stringify(cardEntries)); } catch (e) {}
+            return;
+          }
+        }
+      } catch (e) {}
+    }
+    if (cardEntries.length) {
+      try { localStorage.setItem('poketracker_cards', JSON.stringify(cardEntries)); } catch (e) {}
+    }
     return;
   }
   try {
@@ -2444,13 +2527,10 @@ async function loadCardEntries(cloud) {
 }
 
 function saveCardEntries() {
-  if (isSyncConfigured()) {
-    saveCardsToSync();
-    return;
-  }
   try {
     localStorage.setItem('poketracker_cards', JSON.stringify(cardEntries));
   } catch(e) { console.warn('Could not save card entries:', e); }
+  if (isSyncConfigured()) saveCardsToSync();
 }
 
 function loadCardSeries() {
@@ -2896,7 +2976,8 @@ function importCardJSON(event) {
         if (c.had_rare === undefined) c.had_rare = false;
       });
       cardEntries = data;
-      saveCardEntries();
+      try { localStorage.setItem('poketracker_cards', JSON.stringify(cardEntries)); } catch (ex) {}
+      replaceAllCardsInSync();
       ctPage = 1;
       renderCardAll();
       showToast('Imported ' + data.length + ' card entr' + (data.length !== 1 ? 'ies' : 'y'));
