@@ -1399,6 +1399,23 @@ async function init() {
           console.error('Failed to load card entries:', e);
         });
         
+        // Test Supabase write connectivity
+        if (isSyncConfigured()) {
+          try {
+            await supabaseFetch('/rest/v1/purchases', {
+              method: 'POST',
+              prefer: 'resolution=merge-duplicates,return=minimal',
+              body: [{ id: '_write_test_', sync_id: getSyncId(), date: '2000-01-01', item: '_test_', quantity: 1, price_gbp: 0, input_currency: 'gbp', source: 'store', store_name: '', notes: '', delivery_fee_gbp: 0 }]
+            });
+            // Clean up test row
+            supabaseFetch('/rest/v1/purchases?id=eq._write_test_', { method: 'DELETE' }).catch(function(){});
+            console.log('Supabase write test: OK');
+          } catch (e) {
+            console.error('Supabase write test FAILED:', e.message);
+            showToast('DB write error: ' + e.message);
+          }
+        }
+
         // Fetch rates in background
         fetchRates().catch(function(e) {
           console.error('Failed to fetch rates:', e);
@@ -1540,85 +1557,68 @@ function purchaseToRow(p) {
   };
 }
 
+/* Helper: make a Supabase REST call and throw with details on failure */
+async function supabaseFetch(path, options) {
+  var url = SUPABASE_BASE + path;
+  var hdrs = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' };
+  if (options.prefer) hdrs['Prefer'] = options.prefer;
+  var res = await fetch(url, {
+    method: options.method || 'GET',
+    headers: hdrs,
+    body: options.body ? JSON.stringify(options.body) : undefined
+  });
+  if (!res.ok) {
+    var errBody = '';
+    try { errBody = await res.text(); } catch(e){}
+    var msg = 'Supabase ' + (options.method||'GET') + ' ' + res.status + ': ' + errBody;
+    console.error(msg);
+    throw new Error(msg);
+  }
+  return res;
+}
+
+/* Upsert a single purchase row */
+async function upsertPurchaseToSync(entry) {
+  if (!isSyncConfigured()) return;
+  var row = purchaseToRow(entry);
+  await supabaseFetch('/rest/v1/purchases', {
+    method: 'POST',
+    prefer: 'resolution=merge-duplicates,return=minimal',
+    body: [row]
+  });
+}
+
+/* Upsert ALL purchases (batch — used for import and dirty re-sync) */
 async function savePurchasesToSync() {
   if (!isSyncConfigured()) return;
+  var sid = getSyncId();
   if (purchases.length === 0) {
-    // Delete all purchases from Supabase when local array is empty
-    var sid = getSyncId();
-    try {
-      await fetch(SUPABASE_BASE + '/rest/v1/purchases?sync_id=eq.' + encodeURIComponent(sid), { method: 'DELETE', headers: supabaseHeaders() });
-    } catch (e) {
-      console.error('Failed to clear purchases from Supabase:', e);
-    }
+    await supabaseFetch('/rest/v1/purchases?sync_id=eq.' + encodeURIComponent(sid), { method: 'DELETE' });
     return;
   }
-  var body = purchases.map(purchaseToRow);
-  try {
-    var controller = new AbortController();
-    var timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-    var res = await fetch(SUPABASE_BASE + '/rest/v1/purchases', {
-      method: 'POST',
-      headers: Object.assign(supabaseHeaders(), { 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
-      body: JSON.stringify(body),
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-    if (!res.ok) {
-      var errorText = await res.text();
-      console.error('Failed to save purchases to Supabase:', res.status, errorText);
-      throw new Error('Save failed: ' + res.status);
-    }
-  } catch (e) {
-    if (e.name === 'AbortError') {
-      console.error('Save purchases timeout after 10s');
-    } else {
-      console.error('Error saving purchases to Supabase:', e);
-    }
-    throw e;
-  }
+  await supabaseFetch('/rest/v1/purchases', {
+    method: 'POST',
+    prefer: 'resolution=merge-duplicates,return=minimal',
+    body: purchases.map(purchaseToRow)
+  });
 }
 
 async function deletePurchaseFromSync(id) {
   if (!isSyncConfigured()) return;
   var sid = getSyncId();
-  try {
-    var res = await fetch(SUPABASE_BASE + '/rest/v1/purchases?id=eq.' + encodeURIComponent(id) + '&sync_id=eq.' + encodeURIComponent(sid), {
-      method: 'DELETE', headers: supabaseHeaders()
-    });
-    if (!res.ok) {
-      console.error('Failed to delete purchase from Supabase:', res.status);
-      throw new Error('Delete failed: ' + res.status);
-    }
-  } catch (e) {
-    console.error('Error deleting purchase from Supabase:', e);
-    throw e;
-  }
+  await supabaseFetch('/rest/v1/purchases?id=eq.' + encodeURIComponent(id) + '&sync_id=eq.' + encodeURIComponent(sid), { method: 'DELETE' });
 }
 
 async function replaceAllPurchasesInSync() {
   if (!isSyncConfigured()) return;
   var sid = getSyncId();
-  try {
-    var delRes = await fetch(SUPABASE_BASE + '/rest/v1/purchases?sync_id=eq.' + encodeURIComponent(sid), { method: 'DELETE', headers: supabaseHeaders() });
-    if (!delRes.ok) {
-      console.error('Failed to delete existing purchases:', delRes.status);
-    }
-    if (purchases.length === 0) return;
-    var body = purchases.map(purchaseToRow);
-    var postRes = await fetch(SUPABASE_BASE + '/rest/v1/purchases', {
-      method: 'POST',
-      headers: Object.assign(supabaseHeaders(), { 'Prefer': 'return=minimal' }),
-      body: JSON.stringify(body)
-    });
-    if (!postRes.ok) {
-      var errorText = await postRes.text();
-      console.error('Failed to replace purchases in Supabase:', postRes.status, errorText);
-      throw new Error('Replace failed: ' + postRes.status);
-    }
-  } catch (e) {
-    console.error('Error replacing purchases in Supabase:', e);
-    throw e;
-  }
+  await supabaseFetch('/rest/v1/purchases?sync_id=eq.' + encodeURIComponent(sid), { method: 'DELETE' });
+  if (purchases.length === 0) return;
+  await supabaseFetch('/rest/v1/purchases', {
+    method: 'POST',
+    prefer: 'return=minimal',
+    body: purchases.map(purchaseToRow)
+  });
 }
 
 function cardToRow(c) {
@@ -1635,85 +1635,48 @@ function cardToRow(c) {
   };
 }
 
+/* Upsert a single card row */
+async function upsertCardToSync(entry) {
+  if (!isSyncConfigured()) return;
+  var row = cardToRow(entry);
+  await supabaseFetch('/rest/v1/card_entries', {
+    method: 'POST',
+    prefer: 'resolution=merge-duplicates,return=minimal',
+    body: [row]
+  });
+}
+
+/* Upsert ALL cards (batch — used for import and dirty re-sync) */
 async function saveCardsToSync() {
   if (!isSyncConfigured()) return;
+  var sid = getSyncId();
   if (cardEntries.length === 0) {
-    // Delete all cards from Supabase when local array is empty
-    var sid = getSyncId();
-    try {
-      await fetch(SUPABASE_BASE + '/rest/v1/card_entries?sync_id=eq.' + encodeURIComponent(sid), { method: 'DELETE', headers: supabaseHeaders() });
-    } catch (e) {
-      console.error('Failed to clear cards from Supabase:', e);
-    }
+    await supabaseFetch('/rest/v1/card_entries?sync_id=eq.' + encodeURIComponent(sid), { method: 'DELETE' });
     return;
   }
-  var body = cardEntries.map(cardToRow);
-  try {
-    var controller = new AbortController();
-    var timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-    var res = await fetch(SUPABASE_BASE + '/rest/v1/card_entries', {
-      method: 'POST',
-      headers: Object.assign(supabaseHeaders(), { 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
-      body: JSON.stringify(body),
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-    if (!res.ok) {
-      var errorText = await res.text();
-      console.error('Failed to save cards to Supabase:', res.status, errorText);
-      throw new Error('Save failed: ' + res.status);
-    }
-  } catch (e) {
-    if (e.name === 'AbortError') {
-      console.error('Save cards timeout after 10s');
-    } else {
-      console.error('Error saving cards to Supabase:', e);
-    }
-    throw e;
-  }
+  await supabaseFetch('/rest/v1/card_entries', {
+    method: 'POST',
+    prefer: 'resolution=merge-duplicates,return=minimal',
+    body: cardEntries.map(cardToRow)
+  });
 }
 
 async function deleteCardFromSync(id) {
   if (!isSyncConfigured()) return;
   var sid = getSyncId();
-  try {
-    var res = await fetch(SUPABASE_BASE + '/rest/v1/card_entries?id=eq.' + encodeURIComponent(id) + '&sync_id=eq.' + encodeURIComponent(sid), {
-      method: 'DELETE', headers: supabaseHeaders()
-    });
-    if (!res.ok) {
-      console.error('Failed to delete card from Supabase:', res.status);
-      throw new Error('Delete failed: ' + res.status);
-    }
-  } catch (e) {
-    console.error('Error deleting card from Supabase:', e);
-    throw e;
-  }
+  await supabaseFetch('/rest/v1/card_entries?id=eq.' + encodeURIComponent(id) + '&sync_id=eq.' + encodeURIComponent(sid), { method: 'DELETE' });
 }
 
 async function replaceAllCardsInSync() {
   if (!isSyncConfigured()) return;
   var sid = getSyncId();
-  try {
-    var delRes = await fetch(SUPABASE_BASE + '/rest/v1/card_entries?sync_id=eq.' + encodeURIComponent(sid), { method: 'DELETE', headers: supabaseHeaders() });
-    if (!delRes.ok) {
-      console.error('Failed to delete existing cards:', delRes.status);
-    }
-    if (cardEntries.length === 0) return;
-    var body = cardEntries.map(cardToRow);
-    var postRes = await fetch(SUPABASE_BASE + '/rest/v1/card_entries', {
-      method: 'POST',
-      headers: Object.assign(supabaseHeaders(), { 'Prefer': 'return=minimal' }),
-      body: JSON.stringify(body)
-    });
-    if (!postRes.ok) {
-      var errorText = await postRes.text();
-      console.error('Failed to replace cards in Supabase:', postRes.status, errorText);
-      throw new Error('Replace failed: ' + postRes.status);
-    }
-  } catch (e) {
-    console.error('Error replacing cards in Supabase:', e);
-    throw e;
-  }
+  await supabaseFetch('/rest/v1/card_entries?sync_id=eq.' + encodeURIComponent(sid), { method: 'DELETE' });
+  if (cardEntries.length === 0) return;
+  await supabaseFetch('/rest/v1/card_entries', {
+    method: 'POST',
+    prefer: 'return=minimal',
+    body: cardEntries.map(cardToRow)
+  });
 }
 
 async function loadData(cloud) {
@@ -1848,7 +1811,7 @@ function migratePurchases() {
   });
 }
 
-async function saveToStorage() {
+async function saveToStorage(singleEntry) {
   try {
     localStorage.setItem('poketracker_purchases', JSON.stringify(purchases));
   } catch (e) {
@@ -1856,13 +1819,17 @@ async function saveToStorage() {
   }
   if (isSyncConfigured()) {
     try {
-      await savePurchasesToSync();
+      if (singleEntry) {
+        await upsertPurchaseToSync(singleEntry);
+      } else {
+        await savePurchasesToSync();
+      }
       try { localStorage.removeItem('poketracker_purchases_dirty'); } catch(e){}
       return true;
     } catch (e) {
-      console.error('Supabase sync failed in saveToStorage:', e);
+      console.error('Supabase sync failed:', e.message);
       try { localStorage.setItem('poketracker_purchases_dirty', 'true'); } catch(e){}
-      return false;
+      return e.message || 'Unknown sync error';
     }
   }
   return true;
@@ -2583,12 +2550,12 @@ async function savePurchase(e) {
     purchases.push(entry);
   }
 
-  var syncOk = await saveToStorage();
+  var result = await saveToStorage(entry);
   var action = editingId ? 'updated' : 'added';
-  if (syncOk) {
-    showToast('Purchase ' + action);
+  if (result === true) {
+    showToast('Purchase ' + action + ' \u2601\uFE0F');
   } else {
-    showToast('Purchase ' + action + ' locally (cloud sync pending)');
+    showToast('Purchase ' + action + ' locally. Sync error: ' + result);
   }
   syncStoreNamesFromPurchases();
   closeModal();
@@ -2865,19 +2832,23 @@ async function loadCardEntries(cloud) {
   cardEntries = [];
 }
 
-async function saveCardEntries() {
+async function saveCardEntries(singleEntry) {
   try {
     localStorage.setItem('poketracker_cards', JSON.stringify(cardEntries));
   } catch(e) { console.warn('Could not save card entries:', e); }
   if (isSyncConfigured()) {
     try {
-      await saveCardsToSync();
+      if (singleEntry) {
+        await upsertCardToSync(singleEntry);
+      } else {
+        await saveCardsToSync();
+      }
       try { localStorage.removeItem('poketracker_cards_dirty'); } catch(e){}
       return true;
     } catch (e) {
-      console.error('Supabase sync failed in saveCardEntries:', e);
+      console.error('Supabase sync failed:', e.message);
       try { localStorage.setItem('poketracker_cards_dirty', 'true'); } catch(e){}
-      return false;
+      return e.message || 'Unknown sync error';
     }
   }
   return true;
@@ -3272,12 +3243,12 @@ async function saveCardEntry(e) {
     cardEntries.push(entry);
   }
 
-  var syncOk = await saveCardEntries();
+  var result = await saveCardEntries(entry);
   var action = ctEditingId ? 'updated' : 'added';
-  if (syncOk) {
-    showToast('Card entry ' + action);
+  if (result === true) {
+    showToast('Card entry ' + action + ' \u2601\uFE0F');
   } else {
-    showToast('Card entry ' + action + ' locally (cloud sync pending)');
+    showToast('Card entry ' + action + ' locally. Sync error: ' + result);
   }
   closeCardModal();
   ctPage = 1;
