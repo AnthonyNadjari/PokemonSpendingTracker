@@ -1685,11 +1685,11 @@ async function replaceAllCardsInSync() {
 
 async function loadData(cloud) {
   if (isSyncConfigured()) {
-    var purchasesFromCloud = (cloud && Array.isArray(cloud.purchases)) ? cloud.purchases : [];
-    
-    // If Supabase has data, use it
-    if (purchasesFromCloud.length > 0) {
-      purchases = purchasesFromCloud;
+    // ALWAYS trust Supabase when sync is configured - even if empty
+    // Only fall back to localStorage if Supabase fetch actually FAILED
+    if (cloud && !cloud.fetchFailed && Array.isArray(cloud.purchases)) {
+      // Supabase responded successfully - use its data (even if empty)
+      purchases = cloud.purchases;
       migratePurchases();
       try {
         localStorage.setItem('poketracker_purchases', JSON.stringify(purchases));
@@ -1698,41 +1698,27 @@ async function loadData(cloud) {
       return;
     }
     
-    // Supabase is empty - check localStorage first
-    try {
-      var saved = localStorage.getItem('poketracker_purchases');
-      if (saved) {
-        var parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          purchases = parsed;
-          migratePurchases();
-          // Sync to Supabase in background
-          savePurchasesToSync().catch(function(e) {
-            console.error('Failed to sync localStorage to Supabase:', e);
-          });
-          return;
-        }
-      }
-    } catch (e) {
-      console.error('Failed to load from localStorage:', e);
-    }
-    
-    // Both Supabase and localStorage empty - seed if fetch failed OR first time
-    var hasSeededBefore = false;
-    try {
-      hasSeededBefore = localStorage.getItem('poketracker_seeded') === 'true';
-    } catch (e) {}
-    
-    var shouldSeed = false;
+    // Supabase fetch failed - fall back to localStorage
     if (cloud && cloud.fetchFailed) {
-      // Fetch failed - try seed file as fallback
-      shouldSeed = true;
-    } else if (!hasSeededBefore) {
-      // First time setup: seed from files
-      shouldSeed = true;
-    }
-    
-    if (shouldSeed) {
+      try {
+        var saved = localStorage.getItem('poketracker_purchases');
+        if (saved) {
+          var parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            purchases = parsed;
+            migratePurchases();
+            // Try to sync to Supabase in background
+            savePurchasesToSync().catch(function(e) {
+              console.error('Failed to sync localStorage to Supabase:', e);
+            });
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load from localStorage:', e);
+      }
+      
+      // Fetch failed and no localStorage - try seed file
       try {
         var seedController = new AbortController();
         var seedTimeout = setTimeout(function() { seedController.abort(); }, 5000);
@@ -1746,10 +1732,7 @@ async function loadData(cloud) {
             try {
               localStorage.setItem('poketracker_purchases', JSON.stringify(purchases));
               localStorage.setItem('poketracker_seeded', 'true');
-            } catch (e) {
-              console.error('Failed to save to localStorage:', e);
-            }
-            // Save to Supabase in background - don't block
+            } catch (e) {}
             savePurchasesToSync().catch(function(e) {
               console.error('Failed to save seed to Supabase:', e);
             });
@@ -1763,7 +1746,7 @@ async function loadData(cloud) {
       }
     }
     
-    // Everything empty - use empty array
+    // Everything failed - use empty array
     purchases = [];
     migratePurchases();
     return;
@@ -2696,11 +2679,11 @@ function initCardTracker() {
 
 async function loadCardEntries(cloud) {
   if (isSyncConfigured()) {
-    var cardsFromCloud = (cloud && Array.isArray(cloud.cards)) ? cloud.cards : [];
-    
-    // If Supabase has data, use it
-    if (cardsFromCloud.length > 0) {
-      cardEntries = cardsFromCloud;
+    // ALWAYS trust Supabase when sync is configured - even if empty
+    // Only fall back to localStorage if Supabase fetch actually FAILED
+    if (cloud && !cloud.fetchFailed && Array.isArray(cloud.cards)) {
+      // Supabase responded successfully - use its data (even if empty)
+      cardEntries = cloud.cards;
       try {
         localStorage.setItem('poketracker_cards', JSON.stringify(cardEntries));
         localStorage.setItem('poketracker_cards_seeded', 'true');
@@ -2708,40 +2691,26 @@ async function loadCardEntries(cloud) {
       return;
     }
     
-    // Supabase is empty - check localStorage first
-    try {
-      var saved = localStorage.getItem('poketracker_cards');
-      if (saved) {
-        var parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          cardEntries = parsed;
-          // Sync to Supabase in background
-          saveCardsToSync().catch(function(e) {
-            console.error('Failed to sync localStorage cards to Supabase:', e);
-          });
-          return;
-        }
-      }
-    } catch (e) {
-      console.error('Failed to load cards from localStorage:', e);
-    }
-    
-    // Both Supabase and localStorage empty - seed if fetch failed OR first time
-    var hasSeededCardsBefore = false;
-    try {
-      hasSeededCardsBefore = localStorage.getItem('poketracker_cards_seeded') === 'true';
-    } catch (e) {}
-    
-    var shouldSeed = false;
+    // Supabase fetch failed - fall back to localStorage
     if (cloud && cloud.fetchFailed) {
-      // Fetch failed - try seed file as fallback
-      shouldSeed = true;
-    } else if (!hasSeededCardsBefore) {
-      // First time setup: seed from files
-      shouldSeed = true;
-    }
-    
-    if (shouldSeed) {
+      try {
+        var saved = localStorage.getItem('poketracker_cards');
+        if (saved) {
+          var parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            cardEntries = parsed;
+            // Try to sync to Supabase in background
+            saveCardsToSync().catch(function(e) {
+              console.error('Failed to sync localStorage cards to Supabase:', e);
+            });
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load cards from localStorage:', e);
+      }
+      
+      // Fetch failed and no localStorage - try seed file
       try {
         var seedController = new AbortController();
         var seedTimeout = setTimeout(function() { seedController.abort(); }, 5000);
@@ -2754,10 +2723,7 @@ async function loadCardEntries(cloud) {
             try {
               localStorage.setItem('poketracker_cards', JSON.stringify(cardEntries));
               localStorage.setItem('poketracker_cards_seeded', 'true');
-            } catch (e) {
-              console.error('Failed to save cards to localStorage:', e);
-            }
-            // Save to Supabase in background - don't block
+            } catch (e) {}
             saveCardsToSync().catch(function(e) {
               console.error('Failed to save card seed to Supabase:', e);
             });
@@ -2771,7 +2737,7 @@ async function loadCardEntries(cloud) {
       }
     }
     
-    // Everything empty - use empty array
+    // Everything failed - use empty array
     cardEntries = [];
     return;
   }
