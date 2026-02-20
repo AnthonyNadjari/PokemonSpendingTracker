@@ -1718,10 +1718,35 @@ async function replaceAllCardsInSync() {
 
 async function loadData(cloud) {
   if (isSyncConfigured()) {
-    // ALWAYS trust Supabase when sync is configured - even if empty
-    // Only fall back to localStorage if Supabase fetch actually FAILED
+    // Check if localStorage has unsynced changes (dirty flag)
+    var isDirty = false;
+    try { isDirty = localStorage.getItem('poketracker_purchases_dirty') === 'true'; } catch(e){}
+
     if (cloud && !cloud.fetchFailed && Array.isArray(cloud.purchases)) {
-      // Supabase responded successfully - use its data (even if empty)
+      // Supabase responded — but check if local data is newer (dirty)
+      if (isDirty) {
+        try {
+          var localSaved = localStorage.getItem('poketracker_purchases');
+          if (localSaved) {
+            var localParsed = JSON.parse(localSaved);
+            if (Array.isArray(localParsed) && localParsed.length > 0) {
+              purchases = localParsed;
+              migratePurchases();
+              // Re-attempt full sync in background (push local → Supabase)
+              replaceAllPurchasesInSync().then(function() {
+                try { localStorage.removeItem('poketracker_purchases_dirty'); } catch(e){}
+                console.log('Re-synced dirty purchases to Supabase');
+              }).catch(function(e) {
+                console.error('Re-sync of dirty purchases failed:', e);
+              });
+              return;
+            }
+          }
+        } catch(e) {
+          console.error('Failed to load dirty localStorage purchases:', e);
+        }
+      }
+      // Not dirty — trust Supabase data
       purchases = cloud.purchases;
       migratePurchases();
       try {
@@ -1730,7 +1755,7 @@ async function loadData(cloud) {
       } catch (e) {}
       return;
     }
-    
+
     // Supabase fetch failed - fall back to localStorage
     if (cloud && cloud.fetchFailed) {
       try {
@@ -1741,7 +1766,9 @@ async function loadData(cloud) {
             purchases = parsed;
             migratePurchases();
             // Try to sync to Supabase in background
-            savePurchasesToSync().catch(function(e) {
+            savePurchasesToSync().then(function() {
+              try { localStorage.removeItem('poketracker_purchases_dirty'); } catch(e){}
+            }).catch(function(e) {
               console.error('Failed to sync localStorage to Supabase:', e);
             });
             return;
@@ -1750,7 +1777,7 @@ async function loadData(cloud) {
       } catch (e) {
         console.error('Failed to load from localStorage:', e);
       }
-      
+
       // Fetch failed and no localStorage - try seed file
       try {
         var seedController = new AbortController();
@@ -1778,7 +1805,7 @@ async function loadData(cloud) {
         }
       }
     }
-    
+
     // Everything failed - use empty array
     purchases = [];
     migratePurchases();
@@ -1830,11 +1857,15 @@ async function saveToStorage() {
   if (isSyncConfigured()) {
     try {
       await savePurchasesToSync();
+      try { localStorage.removeItem('poketracker_purchases_dirty'); } catch(e){}
+      return true;
     } catch (e) {
       console.error('Supabase sync failed in saveToStorage:', e);
-      showToast('Saved locally. Cloud sync failed — will retry.');
+      try { localStorage.setItem('poketracker_purchases_dirty', 'true'); } catch(e){}
+      return false;
     }
   }
+  return true;
 }
 
 /* ===== Store Names ===== */
@@ -2552,16 +2583,12 @@ async function savePurchase(e) {
     purchases.push(entry);
   }
 
-  try {
-    await saveToStorage();
-    if (editingId) {
-      showToast('Purchase updated');
-    } else {
-      showToast('Purchase added');
-    }
-  } catch (e) {
-    console.error('Failed to save purchase:', e);
-    showToast('Error: Failed to save purchase');
+  var syncOk = await saveToStorage();
+  var action = editingId ? 'updated' : 'added';
+  if (syncOk) {
+    showToast('Purchase ' + action);
+  } else {
+    showToast('Purchase ' + action + ' locally (cloud sync pending)');
   }
   syncStoreNamesFromPurchases();
   closeModal();
@@ -2596,10 +2623,12 @@ document.getElementById('confirm-delete-btn').addEventListener('click', async fu
     } catch (e) {}
     try {
       await deletePurchaseFromSync(id);
+      try { localStorage.removeItem('poketracker_purchases_dirty'); } catch(e){}
       showToast('Purchase deleted');
     } catch (e) {
       console.error('Failed to delete purchase from Supabase:', e);
-      showToast('Deleted locally. Sync error — will retry on next save.');
+      try { localStorage.setItem('poketracker_purchases_dirty', 'true'); } catch(e){}
+      showToast('Deleted locally (cloud sync pending)');
     }
     closeConfirm();
     renderAll();
@@ -2642,14 +2671,16 @@ function importJSON(event) {
       try { localStorage.setItem('poketracker_purchases', JSON.stringify(purchases)); } catch (ex) {}
       try {
         await replaceAllPurchasesInSync();
-        syncStoreNamesFromPurchases();
-        currentPage = 1;
-        renderAll();
+        try { localStorage.removeItem('poketracker_purchases_dirty'); } catch(ex){}
         showToast('Imported ' + data.length + ' purchase' + (data.length !== 1 ? 's' : ''));
       } catch (err) {
         console.error('Failed to sync imported purchases:', err);
-        showToast('Error: Failed to sync imported purchases');
+        try { localStorage.setItem('poketracker_purchases_dirty', 'true'); } catch(ex){}
+        showToast('Imported locally (' + data.length + ') — cloud sync pending');
       }
+      syncStoreNamesFromPurchases();
+      currentPage = 1;
+      renderAll();
     } catch (err) {
       showToast('Error: Invalid JSON file');
     }
@@ -2708,10 +2739,12 @@ function initCardTracker() {
       } catch (e) {}
       try {
         await deleteCardFromSync(id);
+        try { localStorage.removeItem('poketracker_cards_dirty'); } catch(e){}
         showToast('Card entry deleted');
       } catch (e) {
         console.error('Failed to delete card from Supabase:', e);
-        showToast('Deleted locally. Sync error — will retry on next save.');
+        try { localStorage.setItem('poketracker_cards_dirty', 'true'); } catch(e){}
+        showToast('Deleted locally (cloud sync pending)');
       }
       closeCardConfirm();
       renderCardAll();
@@ -2721,10 +2754,34 @@ function initCardTracker() {
 
 async function loadCardEntries(cloud) {
   if (isSyncConfigured()) {
-    // ALWAYS trust Supabase when sync is configured - even if empty
-    // Only fall back to localStorage if Supabase fetch actually FAILED
+    // Check if localStorage has unsynced changes (dirty flag)
+    var isDirty = false;
+    try { isDirty = localStorage.getItem('poketracker_cards_dirty') === 'true'; } catch(e){}
+
     if (cloud && !cloud.fetchFailed && Array.isArray(cloud.cards)) {
-      // Supabase responded successfully - use its data (even if empty)
+      // Supabase responded — but check if local data is newer (dirty)
+      if (isDirty) {
+        try {
+          var localSaved = localStorage.getItem('poketracker_cards');
+          if (localSaved) {
+            var localParsed = JSON.parse(localSaved);
+            if (Array.isArray(localParsed) && localParsed.length > 0) {
+              cardEntries = localParsed;
+              // Re-attempt full sync in background (push local → Supabase)
+              replaceAllCardsInSync().then(function() {
+                try { localStorage.removeItem('poketracker_cards_dirty'); } catch(e){}
+                console.log('Re-synced dirty cards to Supabase');
+              }).catch(function(e) {
+                console.error('Re-sync of dirty cards failed:', e);
+              });
+              return;
+            }
+          }
+        } catch(e) {
+          console.error('Failed to load dirty localStorage cards:', e);
+        }
+      }
+      // Not dirty — trust Supabase data
       cardEntries = cloud.cards;
       try {
         localStorage.setItem('poketracker_cards', JSON.stringify(cardEntries));
@@ -2732,7 +2789,7 @@ async function loadCardEntries(cloud) {
       } catch (e) {}
       return;
     }
-    
+
     // Supabase fetch failed - fall back to localStorage
     if (cloud && cloud.fetchFailed) {
       try {
@@ -2742,7 +2799,9 @@ async function loadCardEntries(cloud) {
           if (Array.isArray(parsed) && parsed.length > 0) {
             cardEntries = parsed;
             // Try to sync to Supabase in background
-            saveCardsToSync().catch(function(e) {
+            saveCardsToSync().then(function() {
+              try { localStorage.removeItem('poketracker_cards_dirty'); } catch(e){}
+            }).catch(function(e) {
               console.error('Failed to sync localStorage cards to Supabase:', e);
             });
             return;
@@ -2751,7 +2810,7 @@ async function loadCardEntries(cloud) {
       } catch (e) {
         console.error('Failed to load cards from localStorage:', e);
       }
-      
+
       // Fetch failed and no localStorage - try seed file
       try {
         var seedController = new AbortController();
@@ -2778,7 +2837,7 @@ async function loadCardEntries(cloud) {
         }
       }
     }
-    
+
     // Everything failed - use empty array
     cardEntries = [];
     return;
@@ -2813,11 +2872,15 @@ async function saveCardEntries() {
   if (isSyncConfigured()) {
     try {
       await saveCardsToSync();
+      try { localStorage.removeItem('poketracker_cards_dirty'); } catch(e){}
+      return true;
     } catch (e) {
       console.error('Supabase sync failed in saveCardEntries:', e);
-      showToast('Saved locally. Cloud sync failed — will retry.');
+      try { localStorage.setItem('poketracker_cards_dirty', 'true'); } catch(e){}
+      return false;
     }
   }
+  return true;
 }
 
 function loadCardSeries() {
@@ -3209,16 +3272,12 @@ async function saveCardEntry(e) {
     cardEntries.push(entry);
   }
 
-  try {
-    await saveCardEntries();
-    if (ctEditingId) {
-      showToast('Card entry updated');
-    } else {
-      showToast('Card entry added');
-    }
-  } catch (e) {
-    console.error('Failed to save card entry:', e);
-    showToast('Error: Failed to save card entry');
+  var syncOk = await saveCardEntries();
+  var action = ctEditingId ? 'updated' : 'added';
+  if (syncOk) {
+    showToast('Card entry ' + action);
+  } else {
+    showToast('Card entry ' + action + ' locally (cloud sync pending)');
   }
   closeCardModal();
   ctPage = 1;
@@ -3274,13 +3333,15 @@ function importCardJSON(event) {
       try { localStorage.setItem('poketracker_cards', JSON.stringify(cardEntries)); } catch (ex) {}
       try {
         await replaceAllCardsInSync();
-        ctPage = 1;
-        renderCardAll();
+        try { localStorage.removeItem('poketracker_cards_dirty'); } catch(ex){}
         showToast('Imported ' + data.length + ' card entr' + (data.length !== 1 ? 'ies' : 'y'));
       } catch (err) {
         console.error('Failed to sync imported cards:', err);
-        showToast('Error: Failed to sync imported cards');
+        try { localStorage.setItem('poketracker_cards_dirty', 'true'); } catch(ex){}
+        showToast('Imported locally (' + data.length + ') — cloud sync pending');
       }
+      ctPage = 1;
+      renderCardAll();
     } catch(err) {
       showToast('Error: Invalid JSON file');
     }
