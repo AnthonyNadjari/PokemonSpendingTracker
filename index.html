@@ -1342,44 +1342,74 @@ window.addEventListener('resize', function() {
 });
 
 async function init() {
-  try {
-    updateThemeButton();
-    updateThemeColor();
-    updateHeaderAddButton('spending');
-    showLoader(true);
-    loadStoreNames();
-    updateRateDisplay(); // Show fallback rates immediately
-    var cloud = null;
-    try {
-      if (isSyncConfigured()) cloud = await loadFromSync();
-    } catch (e) {
-      console.error('Failed to load from sync:', e);
-      cloud = { purchases: null, cards: null, tablesMissing: false, fetchFailed: true };
-    }
-    if (cloud && cloud.tablesMissing) {
-      var setupBar = document.getElementById('sync-setup-bar');
-      if (setupBar) setupBar.style.display = 'block';
-    }
-    try {
-      await loadData(cloud);
-    } catch (e) {
-      console.error('Failed to load purchases:', e);
-    }
-    try {
-      await loadCardEntries(cloud);
-    } catch (e) {
-      console.error('Failed to load card entries:', e);
-    }
-    await Promise.allSettled([fetchRates()]);
-    syncStoreNamesFromPurchases();
-    renderAll();
-    initCardTracker();
-    _lastMobileTable = isMobileTable();
-  } catch (e) {
-    console.error('Init error:', e);
-  } finally {
+  updateThemeButton();
+  updateThemeColor();
+  updateHeaderAddButton('spending');
+  showLoader(true);
+  loadStoreNames();
+  updateRateDisplay(); // Show fallback rates immediately
+  renderAll(); // Render empty state immediately
+  initCardTracker();
+  _lastMobileTable = isMobileTable();
+  
+  // Force hide loader after max 5 seconds no matter what
+  var loaderTimeout = setTimeout(function() {
     showLoader(false);
-  }
+    console.warn('Loader timeout - forcing UI to show');
+  }, 5000);
+  
+  // Load data in background - don't block UI
+  (async function() {
+    try {
+      var cloud = null;
+      if (isSyncConfigured()) {
+        try {
+          cloud = await Promise.race([
+            loadFromSync(),
+            new Promise(function(_, reject) {
+              setTimeout(function() { reject(new Error('Load timeout')); }, 8000);
+            })
+          ]);
+        } catch (e) {
+          console.error('Failed to load from sync:', e);
+          cloud = { purchases: null, cards: null, tablesMissing: false, fetchFailed: true };
+        }
+      }
+      
+      if (cloud && cloud.tablesMissing) {
+        var setupBar = document.getElementById('sync-setup-bar');
+        if (setupBar) setupBar.style.display = 'block';
+      }
+      
+      // Load purchases - don't await, let it run in background
+      loadData(cloud).catch(function(e) {
+        console.error('Failed to load purchases:', e);
+      });
+      
+      // Load cards - don't await, let it run in background
+      loadCardEntries(cloud).catch(function(e) {
+        console.error('Failed to load card entries:', e);
+      });
+      
+      // Fetch rates in background
+      fetchRates().catch(function(e) {
+        console.error('Failed to fetch rates:', e);
+      });
+      
+      // Wait a bit for initial data, then render
+      setTimeout(function() {
+        syncStoreNamesFromPurchases();
+        renderAll();
+        clearTimeout(loaderTimeout);
+        showLoader(false);
+      }, 1000);
+      
+    } catch (e) {
+      console.error('Init error:', e);
+      clearTimeout(loaderTimeout);
+      showLoader(false);
+    }
+  })();
 }
 
 function isSyncConfigured() {
@@ -1669,22 +1699,33 @@ async function loadData(cloud) {
     
     if (shouldSeed) {
       try {
-        var res = await fetch('./data.json?_=' + Date.now());
+        var seedController = new AbortController();
+        var seedTimeout = setTimeout(function() { seedController.abort(); }, 5000);
+        var res = await fetch('./data.json?_=' + Date.now(), { signal: seedController.signal });
+        clearTimeout(seedTimeout);
         if (res.ok) {
           var seed = await res.json();
           if (Array.isArray(seed) && seed.length) {
             purchases = seed;
             migratePurchases();
-            await savePurchasesToSync();
             try {
               localStorage.setItem('poketracker_purchases', JSON.stringify(purchases));
               localStorage.setItem('poketracker_seeded', 'true');
-            } catch (e) {}
+            } catch (e) {
+              console.error('Failed to save to localStorage:', e);
+            }
+            // Save to Supabase in background - don't block
+            savePurchasesToSync().catch(function(e) {
+              console.error('Failed to save seed to Supabase:', e);
+            });
+            renderAll(); // Update UI immediately
             return;
           }
         }
       } catch (e) {
-        console.error('Failed to load seed data:', e);
+        if (e.name !== 'AbortError') {
+          console.error('Failed to load seed data:', e);
+        }
       }
     }
     
@@ -2645,28 +2686,32 @@ async function loadCardEntries(cloud) {
     
     if (shouldSeed) {
       try {
-        var res = await fetch('./card_data.json?_=' + Date.now());
+        var seedController = new AbortController();
+        var seedTimeout = setTimeout(function() { seedController.abort(); }, 5000);
+        var res = await fetch('./card_data.json?_=' + Date.now(), { signal: seedController.signal });
+        clearTimeout(seedTimeout);
         if (res.ok) {
           var seed = await res.json();
           if (Array.isArray(seed) && seed.length) {
             cardEntries = seed;
-            try {
-              await saveCardsToSync();
-            } catch (e) {
-              console.error('Failed to save card seed to Supabase:', e);
-              // Continue anyway - at least we have the data locally
-            }
             try {
               localStorage.setItem('poketracker_cards', JSON.stringify(cardEntries));
               localStorage.setItem('poketracker_cards_seeded', 'true');
             } catch (e) {
               console.error('Failed to save cards to localStorage:', e);
             }
+            // Save to Supabase in background - don't block
+            saveCardsToSync().catch(function(e) {
+              console.error('Failed to save card seed to Supabase:', e);
+            });
+            renderCardAll(); // Update UI immediately
             return;
           }
         }
       } catch (e) {
-        console.error('Failed to load card seed data:', e);
+        if (e.name !== 'AbortError') {
+          console.error('Failed to load card seed data:', e);
+        }
       }
     }
     
