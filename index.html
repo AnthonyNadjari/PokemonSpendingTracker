@@ -1560,7 +1560,7 @@ function purchaseToRow(p) {
 /* Helper: make a Supabase REST call and throw with details on failure */
 async function supabaseFetch(path, options) {
   var url = SUPABASE_BASE + path;
-  var hdrs = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' };
+  var hdrs = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Accept': 'application/json', 'Content-Type': 'application/json' };
   if (options.prefer) hdrs['Prefer'] = options.prefer;
   var res = await fetch(url, {
     method: options.method || 'GET',
@@ -1695,12 +1695,13 @@ async function loadData(cloud) {
             if (Array.isArray(localParsed) && localParsed.length > 0) {
               purchases = localParsed;
               migratePurchases();
-              // Re-attempt full sync in background (push local → Supabase)
-              replaceAllPurchasesInSync().then(function() {
+              // Re-attempt sync: upsert all local data (safe — doesn't delete first)
+              savePurchasesToSync().then(function() {
                 try { localStorage.removeItem('poketracker_purchases_dirty'); } catch(e){}
-                console.log('Re-synced dirty purchases to Supabase');
+                showToast('Synced ' + purchases.length + ' purchases to cloud');
               }).catch(function(e) {
                 console.error('Re-sync of dirty purchases failed:', e);
+                showToast('Cloud re-sync failed: ' + e.message);
               });
               return;
             }
@@ -2734,12 +2735,13 @@ async function loadCardEntries(cloud) {
             var localParsed = JSON.parse(localSaved);
             if (Array.isArray(localParsed) && localParsed.length > 0) {
               cardEntries = localParsed;
-              // Re-attempt full sync in background (push local → Supabase)
-              replaceAllCardsInSync().then(function() {
+              // Re-attempt sync: upsert all local data (safe — doesn't delete first)
+              saveCardsToSync().then(function() {
                 try { localStorage.removeItem('poketracker_cards_dirty'); } catch(e){}
-                console.log('Re-synced dirty cards to Supabase');
+                showToast('Synced ' + cardEntries.length + ' card entries to cloud');
               }).catch(function(e) {
                 console.error('Re-sync of dirty cards failed:', e);
+                showToast('Card cloud re-sync failed: ' + e.message);
               });
               return;
             }
