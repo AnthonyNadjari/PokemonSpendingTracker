@@ -54,9 +54,9 @@ A single-page web app (pure HTML/CSS/JS, no build step) for tracking Pokemon TCG
 ## Important Notes
 - All prices stored in GBP as base; EUR/USD computed from rates
 - The user gets paid on the 23rd, so "23–23" period mode is the default
-- **Sync:** Spends and cards are synced via Supabase (`store` table: rows `{syncId}_purchases` and `{syncId}_cards`). Same data on all devices when you open the "Copy link" URL. localStorage is used as cache; cloud is source of truth when sync is configured.
+- **Sync:** Spends and cards are synced via Supabase (tables: `purchases`, `card_entries`, keyed by `sync_id`). Supabase is source of truth when configured; localStorage is cache/fallback. All CRUD operations must await Supabase responses before confirming success to the user.
 - The user is UK-based, prices are typically in GBP
 - Store names are persisted separately and auto-synced from purchases
 
 ## Branch
-Main development branch: `claude/pokemon-expense-tracker-CKSKd`
+Main development branch: `main`
