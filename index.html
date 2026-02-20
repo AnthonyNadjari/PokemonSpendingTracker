@@ -1342,74 +1342,78 @@ window.addEventListener('resize', function() {
 });
 
 async function init() {
-  updateThemeButton();
-  updateThemeColor();
-  updateHeaderAddButton('spending');
-  showLoader(true);
-  loadStoreNames();
-  updateRateDisplay(); // Show fallback rates immediately
-  renderAll(); // Render empty state immediately
-  initCardTracker();
-  _lastMobileTable = isMobileTable();
-  
-  // Force hide loader after max 5 seconds no matter what
-  var loaderTimeout = setTimeout(function() {
+  try {
+    updateThemeButton();
+    updateThemeColor();
+    updateHeaderAddButton('spending');
+    loadStoreNames();
+    updateRateDisplay(); // Show fallback rates immediately
+    
+    // Initialize empty arrays to prevent errors
+    if (!purchases) purchases = [];
+    if (!cardEntries) cardEntries = [];
+    
+    // Render UI immediately - don't wait for anything
+    renderAll();
+    initCardTracker();
+    _lastMobileTable = isMobileTable();
+    
+    // Hide loader immediately - UI is ready
     showLoader(false);
-    console.warn('Loader timeout - forcing UI to show');
-  }, 5000);
-  
-  // Load data in background - don't block UI
-  (async function() {
-    try {
-      var cloud = null;
-      if (isSyncConfigured()) {
-        try {
-          cloud = await Promise.race([
-            loadFromSync(),
-            new Promise(function(_, reject) {
-              setTimeout(function() { reject(new Error('Load timeout')); }, 8000);
-            })
-          ]);
-        } catch (e) {
-          console.error('Failed to load from sync:', e);
-          cloud = { purchases: null, cards: null, tablesMissing: false, fetchFailed: true };
+    
+    // Load data in background - don't block UI
+    (async function() {
+      try {
+        var cloud = null;
+        if (isSyncConfigured()) {
+          try {
+            cloud = await Promise.race([
+              loadFromSync(),
+              new Promise(function(_, reject) {
+                setTimeout(function() { reject(new Error('Load timeout')); }, 8000);
+              })
+            ]);
+          } catch (e) {
+            console.error('Failed to load from sync:', e);
+            cloud = { purchases: null, cards: null, tablesMissing: false, fetchFailed: true };
+          }
         }
+        
+        if (cloud && cloud.tablesMissing) {
+          var setupBar = document.getElementById('sync-setup-bar');
+          if (setupBar) setupBar.style.display = 'block';
+        }
+        
+        // Load purchases - don't await, let it run in background
+        loadData(cloud).then(function() {
+          syncStoreNamesFromPurchases();
+          renderAll();
+        }).catch(function(e) {
+          console.error('Failed to load purchases:', e);
+        });
+        
+        // Load cards - don't await, let it run in background
+        loadCardEntries(cloud).then(function() {
+          renderCardAll();
+        }).catch(function(e) {
+          console.error('Failed to load card entries:', e);
+        });
+        
+        // Fetch rates in background
+        fetchRates().catch(function(e) {
+          console.error('Failed to fetch rates:', e);
+        });
+        
+      } catch (e) {
+        console.error('Init error:', e);
       }
-      
-      if (cloud && cloud.tablesMissing) {
-        var setupBar = document.getElementById('sync-setup-bar');
-        if (setupBar) setupBar.style.display = 'block';
-      }
-      
-      // Load purchases - don't await, let it run in background
-      loadData(cloud).catch(function(e) {
-        console.error('Failed to load purchases:', e);
-      });
-      
-      // Load cards - don't await, let it run in background
-      loadCardEntries(cloud).catch(function(e) {
-        console.error('Failed to load card entries:', e);
-      });
-      
-      // Fetch rates in background
-      fetchRates().catch(function(e) {
-        console.error('Failed to fetch rates:', e);
-      });
-      
-      // Wait a bit for initial data, then render
-      setTimeout(function() {
-        syncStoreNamesFromPurchases();
-        renderAll();
-        clearTimeout(loaderTimeout);
-        showLoader(false);
-      }, 1000);
-      
-    } catch (e) {
-      console.error('Init error:', e);
-      clearTimeout(loaderTimeout);
-      showLoader(false);
-    }
-  })();
+    })();
+  } catch (e) {
+    console.error('Critical init error:', e);
+    showLoader(false);
+    // Ensure UI is still usable even if init fails
+    renderAll();
+  }
 }
 
 function isSyncConfigured() {
