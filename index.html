@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-GB">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1832,7 +1832,7 @@ async function saveToStorage() {
       await savePurchasesToSync();
     } catch (e) {
       console.error('Supabase sync failed in saveToStorage:', e);
-      throw e;
+      showToast('Saved locally. Cloud sync failed — will retry.');
     }
   }
 }
@@ -2815,7 +2815,7 @@ async function saveCardEntries() {
       await saveCardsToSync();
     } catch (e) {
       console.error('Supabase sync failed in saveCardEntries:', e);
-      throw e;
+      showToast('Saved locally. Cloud sync failed — will retry.');
     }
   }
 }
