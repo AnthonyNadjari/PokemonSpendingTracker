@@ -1423,7 +1423,7 @@ function rowToCard(r) {
 }
 
 async function loadFromSyncWithId(sid) {
-  if (!isSyncConfigured() || !sid) return { purchases: null, cards: null, tablesMissing: false };
+  if (!isSyncConfigured() || !sid) return { purchases: null, cards: null, tablesMissing: false, fetchFailed: false };
   try {
     var [pRes, cRes] = await Promise.all([
       fetch(SUPABASE_BASE + '/rest/v1/purchases?sync_id=eq.' + encodeURIComponent(sid) + '&order=date.desc', { headers: supabaseHeaders() }),
@@ -1435,9 +1435,13 @@ async function loadFromSyncWithId(sid) {
     return {
       purchases: Array.isArray(purchasesData) ? purchasesData.map(rowToPurchase) : [],
       cards: Array.isArray(cardsData) ? cardsData.map(rowToCard) : [],
-      tablesMissing: tablesMissing
+      tablesMissing: tablesMissing,
+      fetchFailed: false
     };
-  } catch (e) { return { purchases: null, cards: null, tablesMissing: true }; }
+  } catch (e) {
+    console.error('Failed to load from Supabase:', e);
+    return { purchases: null, cards: null, tablesMissing: true, fetchFailed: true };
+  }
 }
 
 async function loadFromSync() {
@@ -1476,14 +1480,24 @@ function purchaseToRow(p) {
   };
 }
 
-function savePurchasesToSync() {
+async function savePurchasesToSync() {
   if (!isSyncConfigured() || purchases.length === 0) return;
   var body = purchases.map(purchaseToRow);
-  fetch(SUPABASE_BASE + '/rest/v1/purchases', {
-    method: 'POST',
-    headers: Object.assign(supabaseHeaders(), { 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
-    body: JSON.stringify(body)
-  }).catch(function() {});
+  try {
+    var res = await fetch(SUPABASE_BASE + '/rest/v1/purchases', {
+      method: 'POST',
+      headers: Object.assign(supabaseHeaders(), { 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+      var errorText = await res.text();
+      console.error('Failed to save purchases to Supabase:', res.status, errorText);
+      throw new Error('Save failed: ' + res.status);
+    }
+  } catch (e) {
+    console.error('Error saving purchases to Supabase:', e);
+    throw e;
+  }
 }
 
 function deletePurchaseFromSync(id) {
@@ -1494,19 +1508,29 @@ function deletePurchaseFromSync(id) {
   }).catch(function() {});
 }
 
-function replaceAllPurchasesInSync() {
+async function replaceAllPurchasesInSync() {
   if (!isSyncConfigured() || purchases.length === 0) return;
   var sid = getSyncId();
   var body = purchases.map(purchaseToRow);
-  fetch(SUPABASE_BASE + '/rest/v1/purchases?sync_id=eq.' + encodeURIComponent(sid), { method: 'DELETE', headers: supabaseHeaders() })
-    .then(function() {
-      return fetch(SUPABASE_BASE + '/rest/v1/purchases', {
-        method: 'POST',
-        headers: Object.assign(supabaseHeaders(), { 'Prefer': 'return=minimal' }),
-        body: JSON.stringify(body)
-      });
-    })
-    .catch(function() {});
+  try {
+    var delRes = await fetch(SUPABASE_BASE + '/rest/v1/purchases?sync_id=eq.' + encodeURIComponent(sid), { method: 'DELETE', headers: supabaseHeaders() });
+    if (!delRes.ok) {
+      console.error('Failed to delete existing purchases:', delRes.status);
+    }
+    var postRes = await fetch(SUPABASE_BASE + '/rest/v1/purchases', {
+      method: 'POST',
+      headers: Object.assign(supabaseHeaders(), { 'Prefer': 'return=minimal' }),
+      body: JSON.stringify(body)
+    });
+    if (!postRes.ok) {
+      var errorText = await postRes.text();
+      console.error('Failed to replace purchases in Supabase:', postRes.status, errorText);
+      throw new Error('Replace failed: ' + postRes.status);
+    }
+  } catch (e) {
+    console.error('Error replacing purchases in Supabase:', e);
+    throw e;
+  }
 }
 
 function cardToRow(c) {
@@ -1523,44 +1547,71 @@ function cardToRow(c) {
   };
 }
 
-function saveCardsToSync() {
+async function saveCardsToSync() {
   if (!isSyncConfigured() || cardEntries.length === 0) return;
   var body = cardEntries.map(cardToRow);
-  fetch(SUPABASE_BASE + '/rest/v1/card_entries', {
-    method: 'POST',
-    headers: Object.assign(supabaseHeaders(), { 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
-    body: JSON.stringify(body)
-  }).catch(function() {});
+  try {
+    var res = await fetch(SUPABASE_BASE + '/rest/v1/card_entries', {
+      method: 'POST',
+      headers: Object.assign(supabaseHeaders(), { 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+      var errorText = await res.text();
+      console.error('Failed to save cards to Supabase:', res.status, errorText);
+      throw new Error('Save failed: ' + res.status);
+    }
+  } catch (e) {
+    console.error('Error saving cards to Supabase:', e);
+    throw e;
+  }
 }
 
-function deleteCardFromSync(id) {
+async function deleteCardFromSync(id) {
   if (!isSyncConfigured()) return;
   var sid = getSyncId();
-  fetch(SUPABASE_BASE + '/rest/v1/card_entries?id=eq.' + encodeURIComponent(id) + '&sync_id=eq.' + encodeURIComponent(sid), {
-    method: 'DELETE', headers: supabaseHeaders()
-  }).catch(function() {});
+  try {
+    var res = await fetch(SUPABASE_BASE + '/rest/v1/card_entries?id=eq.' + encodeURIComponent(id) + '&sync_id=eq.' + encodeURIComponent(sid), {
+      method: 'DELETE', headers: supabaseHeaders()
+    });
+    if (!res.ok) {
+      console.error('Failed to delete card from Supabase:', res.status);
+    }
+  } catch (e) {
+    console.error('Error deleting card from Supabase:', e);
+  }
 }
 
-function replaceAllCardsInSync() {
+async function replaceAllCardsInSync() {
   if (!isSyncConfigured() || cardEntries.length === 0) return;
   var sid = getSyncId();
   var body = cardEntries.map(cardToRow);
-  fetch(SUPABASE_BASE + '/rest/v1/card_entries?sync_id=eq.' + encodeURIComponent(sid), { method: 'DELETE', headers: supabaseHeaders() })
-    .then(function() {
-      return fetch(SUPABASE_BASE + '/rest/v1/card_entries', {
-        method: 'POST',
-        headers: Object.assign(supabaseHeaders(), { 'Prefer': 'return=minimal' }),
-        body: JSON.stringify(body)
-      });
-    })
-    .catch(function() {});
+  try {
+    var delRes = await fetch(SUPABASE_BASE + '/rest/v1/card_entries?sync_id=eq.' + encodeURIComponent(sid), { method: 'DELETE', headers: supabaseHeaders() });
+    if (!delRes.ok) {
+      console.error('Failed to delete existing cards:', delRes.status);
+    }
+    var postRes = await fetch(SUPABASE_BASE + '/rest/v1/card_entries', {
+      method: 'POST',
+      headers: Object.assign(supabaseHeaders(), { 'Prefer': 'return=minimal' }),
+      body: JSON.stringify(body)
+    });
+    if (!postRes.ok) {
+      var errorText = await postRes.text();
+      console.error('Failed to replace cards in Supabase:', postRes.status, errorText);
+      throw new Error('Replace failed: ' + postRes.status);
+    }
+  } catch (e) {
+    console.error('Error replacing cards in Supabase:', e);
+    throw e;
+  }
 }
 
 async function loadData(cloud) {
   if (isSyncConfigured()) {
-    purchases = (cloud && Array.isArray(cloud.purchases)) ? cloud.purchases : [];
-    if (purchases.length === 0) {
-      // Cloud empty or failed — try seed file and re-push to Supabase
+    // Only seed if fetch actually failed (null), not if Supabase returned empty array (legitimate)
+    if (cloud && cloud.fetchFailed && (!cloud.purchases || cloud.purchases === null)) {
+      // Fetch failed - try seed file as fallback
       try {
         var res = await fetch('./data.json?_=' + Date.now());
         if (res.ok) {
@@ -1568,13 +1619,17 @@ async function loadData(cloud) {
           if (Array.isArray(seed) && seed.length) {
             purchases = seed;
             migratePurchases();
-            savePurchasesToSync();
+            await savePurchasesToSync();
             try { localStorage.setItem('poketracker_purchases', JSON.stringify(purchases)); } catch (e) {}
             return;
           }
         }
-      } catch (e) {}
+      } catch (e) {
+        console.error('Failed to load seed data:', e);
+      }
     }
+    // Normal case: use data from Supabase (even if empty array)
+    purchases = (cloud && Array.isArray(cloud.purchases)) ? cloud.purchases : [];
     migratePurchases();
     if (purchases.length) {
       try { localStorage.setItem('poketracker_purchases', JSON.stringify(purchases)); } catch (e) {}
@@ -1618,13 +1673,15 @@ function migratePurchases() {
   });
 }
 
-function saveToStorage() {
+async function saveToStorage() {
   try {
     localStorage.setItem('poketracker_purchases', JSON.stringify(purchases));
   } catch (e) {
     console.warn('Could not save to localStorage:', e);
   }
-  if (isSyncConfigured()) savePurchasesToSync();
+  if (isSyncConfigured()) {
+    await savePurchasesToSync();
+  }
 }
 
 /* ===== Store Names ===== */
@@ -2338,13 +2395,21 @@ function savePurchase(e) {
   if (editingId) {
     const idx = purchases.findIndex(e => e.id === editingId);
     if (idx !== -1) purchases[idx] = entry;
-    showToast('Purchase updated');
   } else {
     purchases.push(entry);
-    showToast('Purchase added');
   }
 
-  saveToStorage();
+  try {
+    await saveToStorage();
+    if (editingId) {
+      showToast('Purchase updated');
+    } else {
+      showToast('Purchase added');
+    }
+  } catch (e) {
+    console.error('Failed to save purchase:', e);
+    showToast('Error: Failed to save purchase');
+  }
   syncStoreNamesFromPurchases();
   closeModal();
   currentPage = 1;
@@ -2369,12 +2434,18 @@ function closeConfirm() {
   deleteTargetId = null;
 }
 
-document.getElementById('confirm-delete-btn').addEventListener('click', function() {
+document.getElementById('confirm-delete-btn').addEventListener('click', async function() {
   if (deleteTargetId) {
-    deletePurchaseFromSync(deleteTargetId);
-    purchases = purchases.filter(e => e.id !== deleteTargetId);
-    saveToStorage();
-    showToast('Purchase deleted');
+    var id = deleteTargetId;
+    purchases = purchases.filter(e => e.id !== id);
+    try {
+      await deletePurchaseFromSync(id);
+      await saveToStorage();
+      showToast('Purchase deleted');
+    } catch (e) {
+      console.error('Failed to delete purchase:', e);
+      showToast('Error: Failed to delete purchase');
+    }
     closeConfirm();
     renderAll();
   }
@@ -2402,7 +2473,7 @@ function importJSON(event) {
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = async function(e) {
     try {
       const data = JSON.parse(e.target.result);
       if (!Array.isArray(data)) throw new Error('Invalid format');
@@ -2414,11 +2485,16 @@ function importJSON(event) {
       });
       purchases = data;
       try { localStorage.setItem('poketracker_purchases', JSON.stringify(purchases)); } catch (ex) {}
-      replaceAllPurchasesInSync();
-      syncStoreNamesFromPurchases();
-      currentPage = 1;
-      renderAll();
-      showToast('Imported ' + data.length + ' purchase' + (data.length !== 1 ? 's' : ''));
+      try {
+        await replaceAllPurchasesInSync();
+        syncStoreNamesFromPurchases();
+        currentPage = 1;
+        renderAll();
+        showToast('Imported ' + data.length + ' purchase' + (data.length !== 1 ? 's' : ''));
+      } catch (err) {
+        console.error('Failed to sync imported purchases:', err);
+        showToast('Error: Failed to sync imported purchases');
+      }
     } catch (err) {
       showToast('Error: Invalid JSON file');
     }
@@ -2468,12 +2544,18 @@ function initCardTracker() {
   });
 
   // Card confirm delete button
-  document.getElementById('card-confirm-delete-btn').addEventListener('click', function() {
+  document.getElementById('card-confirm-delete-btn').addEventListener('click', async function() {
     if (ctDeleteTargetId) {
-      deleteCardFromSync(ctDeleteTargetId);
-      cardEntries = cardEntries.filter(c => c.id !== ctDeleteTargetId);
-      saveCardEntries();
-      showToast('Card entry deleted');
+      var id = ctDeleteTargetId;
+      cardEntries = cardEntries.filter(c => c.id !== id);
+      try {
+        await deleteCardFromSync(id);
+        await saveCardEntries();
+        showToast('Card entry deleted');
+      } catch (e) {
+        console.error('Failed to delete card entry:', e);
+        showToast('Error: Failed to delete card entry');
+      }
       closeCardConfirm();
       renderCardAll();
     }
@@ -2482,22 +2564,26 @@ function initCardTracker() {
 
 async function loadCardEntries(cloud) {
   if (isSyncConfigured()) {
-    cardEntries = (cloud && Array.isArray(cloud.cards)) ? cloud.cards : [];
-    if (cardEntries.length === 0) {
-      // Cloud empty or failed — try seed file and re-push to Supabase
+    // Only seed if fetch actually failed (null), not if Supabase returned empty array (legitimate)
+    if (cloud && cloud.fetchFailed && (!cloud.cards || cloud.cards === null)) {
+      // Fetch failed - try seed file as fallback
       try {
         var res = await fetch('./card_data.json?_=' + Date.now());
         if (res.ok) {
           var seed = await res.json();
           if (Array.isArray(seed) && seed.length) {
             cardEntries = seed;
-            saveCardsToSync();
+            await saveCardsToSync();
             try { localStorage.setItem('poketracker_cards', JSON.stringify(cardEntries)); } catch (e) {}
             return;
           }
         }
-      } catch (e) {}
+      } catch (e) {
+        console.error('Failed to load card seed data:', e);
+      }
     }
+    // Normal case: use data from Supabase (even if empty array)
+    cardEntries = (cloud && Array.isArray(cloud.cards)) ? cloud.cards : [];
     if (cardEntries.length) {
       try { localStorage.setItem('poketracker_cards', JSON.stringify(cardEntries)); } catch (e) {}
     }
@@ -2526,11 +2612,13 @@ async function loadCardEntries(cloud) {
   cardEntries = [];
 }
 
-function saveCardEntries() {
+async function saveCardEntries() {
   try {
     localStorage.setItem('poketracker_cards', JSON.stringify(cardEntries));
   } catch(e) { console.warn('Could not save card entries:', e); }
-  if (isSyncConfigured()) saveCardsToSync();
+  if (isSyncConfigured()) {
+    await saveCardsToSync();
+  }
 }
 
 function loadCardSeries() {
@@ -2890,7 +2978,7 @@ function closeCardModal() {
 }
 
 /* ===== Save Card Entry ===== */
-function saveCardEntry(e) {
+async function saveCardEntry(e) {
   e.preventDefault();
   const series = document.getElementById('card-form-series').value.trim();
   const weight = parseFloat(document.getElementById('card-form-weight').value);
@@ -2918,13 +3006,21 @@ function saveCardEntry(e) {
   if (ctEditingId) {
     const idx = cardEntries.findIndex(function(c) { return c.id === ctEditingId; });
     if (idx !== -1) cardEntries[idx] = entry;
-    showToast('Card entry updated');
   } else {
     cardEntries.push(entry);
-    showToast('Card entry added');
   }
 
-  saveCardEntries();
+  try {
+    await saveCardEntries();
+    if (ctEditingId) {
+      showToast('Card entry updated');
+    } else {
+      showToast('Card entry added');
+    }
+  } catch (e) {
+    console.error('Failed to save card entry:', e);
+    showToast('Error: Failed to save card entry');
+  }
   closeCardModal();
   ctPage = 1;
   renderCardAll();
@@ -2964,7 +3060,7 @@ function importCardJSON(event) {
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = async function(e) {
     try {
       const data = JSON.parse(e.target.result);
       if (!Array.isArray(data)) throw new Error('Invalid format');
@@ -2977,10 +3073,15 @@ function importCardJSON(event) {
       });
       cardEntries = data;
       try { localStorage.setItem('poketracker_cards', JSON.stringify(cardEntries)); } catch (ex) {}
-      replaceAllCardsInSync();
-      ctPage = 1;
-      renderCardAll();
-      showToast('Imported ' + data.length + ' card entr' + (data.length !== 1 ? 'ies' : 'y'));
+      try {
+        await replaceAllCardsInSync();
+        ctPage = 1;
+        renderCardAll();
+        showToast('Imported ' + data.length + ' card entr' + (data.length !== 1 ? 'ies' : 'y'));
+      } catch (err) {
+        console.error('Failed to sync imported cards:', err);
+        showToast('Error: Failed to sync imported cards');
+      }
     } catch(err) {
       showToast('Error: Invalid JSON file');
     }
