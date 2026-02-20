@@ -1383,17 +1383,8 @@ function getSyncId() {
     var m = location.search.match(/[?&]sync=([^&]+)/);
     return m ? decodeURIComponent(m[1]).trim() : null;
   })() : null;
-  if (fromUrl) {
-    try { localStorage.setItem(SYNC_STORAGE_KEY, fromUrl); } catch (e) {}
-    return fromUrl;
-  }
-  try {
-    var id = localStorage.getItem(SYNC_STORAGE_KEY);
-    if (id) return id;
-    var defaultId = 'main';
-    try { localStorage.setItem(SYNC_STORAGE_KEY, defaultId); } catch (e) {}
-    return defaultId;
-  } catch (e) { return 'main'; }
+  if (fromUrl) return fromUrl;
+  return 'main';
 }
 
 function supabaseHeaders() {
@@ -1466,6 +1457,7 @@ async function loadFromSync() {
 
 function savePurchasesToSync() {
   if (!isSyncConfigured()) return;
+  if (purchases.length === 0) return;
   var sid = getSyncId();
   if (!sid) return;
   var body = purchases.map(function(p) {
@@ -1496,6 +1488,7 @@ function savePurchasesToSync() {
 
 function saveCardsToSync() {
   if (!isSyncConfigured()) return;
+  if (cardEntries.length === 0) return;
   var sid = getSyncId();
   if (!sid) return;
   var body = cardEntries.map(function(c) {
