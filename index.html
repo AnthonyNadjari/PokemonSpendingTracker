@@ -226,6 +226,8 @@ body.light-mode .toast{background:var(--bg-secondary);border-color:var(--border-
 .source-bar-fill.store{background:var(--store-color)}
 .source-bar-fill.online{background:var(--online-color)}
 .source-bar-fill.market{background:var(--market-color)}
+.source-bar-fill.pokemon{background:#FFCB05}
+.source-bar-fill.onepiece{background:#e6302f}
 .source-bar-pct{width:36px;text-align:right;color:var(--text-muted);font-weight:600}
 
 /* Chart Section */
@@ -264,6 +266,12 @@ body.light-mode .toast{background:var(--bg-secondary);border-color:var(--border-
 .pill.active[data-source="store"]{border-color:var(--store-color);color:var(--store-color);background:rgba(59,130,246,0.08)}
 .pill.active[data-source="online"]{border-color:var(--online-color);color:var(--online-color);background:rgba(139,92,246,0.08)}
 .pill.active[data-source="market"]{border-color:var(--market-color);color:var(--market-color);background:rgba(16,185,129,0.08)}
+.pill.active[data-cat="pokemon"]{border-color:#FFCB05;color:#FFCB05;background:rgba(255,203,5,0.08)}
+.pill.active[data-cat="onepiece"]{border-color:#e6302f;color:#e6302f;background:rgba(230,48,47,0.08)}
+.pill.active[data-cat="all"]{border-color:var(--red);color:var(--red);background:rgba(255,28,28,0.08)}
+.category-toggle,.card-category-toggle{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.category-toggle-row{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.category-toggle-row .label{font-size:0.82rem;font-weight:600;color:var(--text-secondary);white-space:nowrap}
 
 /* Date Range Filter */
 .date-filter{
@@ -833,18 +841,28 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
       <div class="card-icon blue" aria-hidden="true">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12V8H6a2 2 0 110-4h12V0"/><path d="M20 12v4H6a2 2 0 100 4h12v4"/></svg>
       </div>
-      <div class="card-label">Total Items</div>
-      <div class="card-value" id="purchase-count">--</div>
-      <div class="card-sub" id="purchase-count-sub"></div>
+      <div class="card-label">Pokemon Only</div>
+      <div class="card-value" id="pokemon-spent">--</div>
+      <div class="card-sub" id="pokemon-spent-sub"></div>
     </div>
     <div class="card">
       <div class="card-icon green" aria-hidden="true">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
       </div>
-      <div class="card-label">Source Breakdown</div>
-      <div class="source-breakdown" id="source-breakdown"></div>
+      <div class="card-label">Category Breakdown</div>
+      <div class="source-breakdown" id="category-breakdown"></div>
     </div>
   </section>
+
+  <!-- Category Toggle -->
+  <div class="category-toggle-row">
+    <span class="label">Category:</span>
+    <div class="category-toggle" role="group" aria-label="Filter by category">
+      <button type="button" class="pill active" data-cat="all" onclick="setSpendingCategory('all',this)">All</button>
+      <button type="button" class="pill" data-cat="pokemon" onclick="setSpendingCategory('pokemon',this)">Pokemon</button>
+      <button type="button" class="pill" data-cat="onepiece" onclick="setSpendingCategory('onepiece',this)">One Piece</button>
+    </div>
+  </div>
 
   <!-- Monthly Spending Chart -->
   <section class="chart-section">
@@ -958,6 +976,16 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Add Card Entry
     </button>
+  </div>
+
+  <!-- Card Category Toggle -->
+  <div class="category-toggle-row">
+    <span class="label">Category:</span>
+    <div class="card-category-toggle" role="group" aria-label="Filter cards by category">
+      <button type="button" class="pill active" data-cat="pokemon" onclick="setCardCategory('pokemon',this)">Pokemon</button>
+      <button type="button" class="pill" data-cat="onepiece" onclick="setCardCategory('onepiece',this)">One Piece</button>
+      <button type="button" class="pill" data-cat="all" onclick="setCardCategory('all',this)">Both</button>
+    </div>
   </div>
 
   <!-- Card Tracker Dashboard -->
@@ -1124,6 +1152,13 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
       <form id="purchase-form" onsubmit="savePurchase(event)">
         <input type="hidden" id="form-id" value="">
         <div class="form-group">
+          <label for="form-category">Category</label>
+          <select id="form-category">
+            <option value="onepiece">One Piece</option>
+            <option value="pokemon">Pokemon</option>
+          </select>
+        </div>
+        <div class="form-group">
           <label for="form-date">Date</label>
           <input type="date" id="form-date" required>
         </div>
@@ -1217,6 +1252,13 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
       <form id="card-form" onsubmit="saveCardEntry(event)">
         <input type="hidden" id="card-form-id" value="">
         <div class="form-group">
+          <label for="card-form-category">Category</label>
+          <select id="card-form-category">
+            <option value="onepiece">One Piece</option>
+            <option value="pokemon">Pokemon</option>
+          </select>
+        </div>
+        <div class="form-group">
           <label for="card-form-series">Series</label>
           <input type="text" id="card-form-series" list="series-datalist" placeholder="Type or select a series..." required>
           <datalist id="series-datalist"></datalist>
@@ -1284,6 +1326,7 @@ let sortDir = 'desc'; // spending table sort direction
 let monthlyChart = null;
 let periodMode = 'payday'; // 'month' or 'payday' (23-to-23)
 let chartFilterActive = false; // whether chart click filter is active
+let spendingCategoryFilter = 'all'; // 'pokemon' | 'onepiece' | 'all'
 
 // Exchange rates: everything relative to GBP as base
 // Fallback rates used if API fails
@@ -1346,6 +1389,7 @@ async function init() {
     updateThemeButton();
     updateThemeColor();
     updateHeaderAddButton('spending');
+    loadCategoryMap();
     loadStoreNames();
     updateRateDisplay(); // Show fallback rates immediately
     
@@ -1366,6 +1410,8 @@ async function init() {
       try {
         var cloud = null;
         if (isSyncConfigured()) {
+          // Detect if category column exists before any sync operations
+          await detectSyncCategory();
           try {
             cloud = await Promise.race([
               loadFromSync(),
@@ -1447,6 +1493,28 @@ function isSyncConfigured() {
 const SYNC_STORAGE_KEY = 'poketracker_sync_id';
 var SUPABASE_BASE = '';
 var SUPABASE_KEY = '';
+var syncHasCategory = false; // auto-detected: whether Supabase tables have the 'category' column
+
+/* Category map: stores {id: category} in localStorage so category survives Supabase overwrites
+   (Supabase may not have the category column yet) */
+var categoryMap = {};
+function loadCategoryMap() {
+  try {
+    var saved = localStorage.getItem('poketracker_categories');
+    if (saved) categoryMap = JSON.parse(saved);
+    if (typeof categoryMap !== 'object' || categoryMap === null) categoryMap = {};
+  } catch(e) { categoryMap = {}; }
+}
+function saveCategoryMap() {
+  try { localStorage.setItem('poketracker_categories', JSON.stringify(categoryMap)); } catch(e) {}
+}
+function setCategoryForId(id, cat) {
+  categoryMap[id] = cat;
+  saveCategoryMap();
+}
+function getCategoryForId(id) {
+  return categoryMap[id] || 'pokemon';
+}
 
 function getSyncId() {
   var fromUrl = typeof location !== 'undefined' && location.search ? (function() {
@@ -1459,6 +1527,25 @@ function getSyncId() {
 
 function supabaseHeaders() {
   return { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Accept': 'application/json', 'Content-Type': 'application/json' };
+}
+
+/* Probe whether Supabase tables have the 'category' column.
+   Uses a SELECT with the column — if it 400s, the column doesn't exist yet. */
+async function detectSyncCategory() {
+  if (!isSyncConfigured()) return;
+  try {
+    var res = await fetch(SUPABASE_BASE + '/rest/v1/purchases?select=category&limit=0', {
+      headers: supabaseHeaders()
+    });
+    syncHasCategory = res.ok;
+    if (syncHasCategory) {
+      console.log('Supabase: category column detected');
+    } else {
+      console.log('Supabase: category column not found — category stored locally only');
+    }
+  } catch (e) {
+    syncHasCategory = false;
+  }
 }
 
 function rowToPurchase(r) {
@@ -1476,7 +1563,8 @@ function rowToPurchase(r) {
     notes: r.notes || '',
     delivery_fee_gbp: Number(r.delivery_fee_gbp || 0),
     delivery_fee_eur: r.delivery_fee_eur != null ? Number(r.delivery_fee_eur) : undefined,
-    delivery_fee_usd: r.delivery_fee_usd != null ? Number(r.delivery_fee_usd) : undefined
+    delivery_fee_usd: r.delivery_fee_usd != null ? Number(r.delivery_fee_usd) : undefined,
+    category: r.category || getCategoryForId(r.id)
   };
 }
 
@@ -1488,7 +1576,8 @@ function rowToCard(r) {
     cover_picture: r.cover_picture || '',
     bipped: !!r.bipped,
     had_rare: !!r.had_rare,
-    created_at: r.created_at
+    created_at: r.created_at,
+    category: r.category || getCategoryForId(r.id)
   };
 }
 
@@ -1538,7 +1627,7 @@ async function loadFromSync() {
 
 function purchaseToRow(p) {
   var sid = getSyncId();
-  return {
+  var row = {
     id: p.id,
     sync_id: sid,
     date: p.date,
@@ -1555,6 +1644,8 @@ function purchaseToRow(p) {
     delivery_fee_eur: p.delivery_fee_eur,
     delivery_fee_usd: p.delivery_fee_usd
   };
+  if (syncHasCategory) row.category = p.category || 'pokemon';
+  return row;
 }
 
 /* Helper: make a Supabase REST call and throw with details on failure */
@@ -1623,7 +1714,7 @@ async function replaceAllPurchasesInSync() {
 
 function cardToRow(c) {
   var sid = getSyncId();
-  return {
+  var row = {
     id: c.id,
     sync_id: sid,
     series: c.series || '',
@@ -1633,6 +1724,8 @@ function cardToRow(c) {
     had_rare: !!c.had_rare,
     created_at: c.created_at || new Date().toISOString()
   };
+  if (syncHasCategory) row.category = c.category || 'pokemon';
+  return row;
 }
 
 /* Upsert a single card row */
@@ -1802,6 +1895,7 @@ async function loadData(cloud) {
 
 
 function migratePurchases() {
+  var mapChanged = false;
   purchases.forEach(p => {
     if (!p.quantity) p.quantity = 1;
     if (p.price_usd === undefined) p.price_usd = parseFloat((p.price_gbp * rates.usd).toFixed(2));
@@ -1809,7 +1903,19 @@ function migratePurchases() {
     if (!p.input_currency) p.input_currency = 'gbp';
     if (p.delivery_fee_eur === undefined && p.delivery_fee_gbp) p.delivery_fee_eur = parseFloat((p.delivery_fee_gbp * rates.eur).toFixed(2));
     if (p.delivery_fee_usd === undefined && p.delivery_fee_gbp) p.delivery_fee_usd = parseFloat((p.delivery_fee_gbp * rates.usd).toFixed(2));
+    if (!p.category) p.category = getCategoryForId(p.id);
+    if (categoryMap[p.id] !== p.category) { categoryMap[p.id] = p.category; mapChanged = true; }
   });
+  if (mapChanged) saveCategoryMap();
+}
+
+function migrateCards() {
+  var mapChanged = false;
+  cardEntries.forEach(c => {
+    if (!c.category) c.category = getCategoryForId(c.id);
+    if (categoryMap[c.id] !== c.category) { categoryMap[c.id] = c.category; mapChanged = true; }
+  });
+  if (mapChanged) saveCategoryMap();
 }
 
 async function saveToStorage(singleEntry) {
@@ -1887,7 +1993,7 @@ function addNewStore() {
 
 async function fetchRates() {
   try {
-    const res = await fetch('https://open.er-api.com/v6/latest/GBP');
+    const res = await fetch('https://open.er-api.com/v6/latest/GBP?_=' + Date.now(), { cache: 'no-store' });
     if (!res.ok) throw new Error('Rate API error');
     const data = await res.json();
     if (data && data.rates) {
@@ -1999,6 +2105,7 @@ function getDashboardPurchases() {
 }
 
 function renderDashboard() {
+  // Dashboard always uses ALL purchases (no category filter)
   const list = getDashboardPurchases();
   const total = list.reduce((s, e) => s + getDisplayPrice(e) * (e.quantity || 1) + convertToDisplay(e.delivery_fee_gbp || 0), 0);
   const now = new Date();
@@ -2026,29 +2133,35 @@ function renderDashboard() {
     periodLabel = 'this month';
   }
   const monthTotal = thisMonth.reduce((s, e) => s + getDisplayPrice(e) * (e.quantity || 1) + convertToDisplay(e.delivery_fee_gbp || 0), 0);
-  const totalItems = list.reduce((s, e) => s + (e.quantity || 1), 0);
+
+  // Pokemon Only card
+  const pokemonList = list.filter(e => e.category === 'pokemon');
+  const pokemonTotal = pokemonList.reduce((s, e) => s + getDisplayPrice(e) * (e.quantity || 1) + convertToDisplay(e.delivery_fee_gbp || 0), 0);
 
   document.getElementById('total-spent').textContent = currencySymbol() + total.toFixed(2);
   document.getElementById('total-spent-sub').textContent = list.length + ' purchase' + (list.length !== 1 ? 's' : '') + ' total';
   document.getElementById('period-label').textContent = chartFilterActive ? 'This Period' : (periodMode === 'payday' ? 'This Period' : 'This Month');
   document.getElementById('month-spent').textContent = currencySymbol() + monthTotal.toFixed(2);
   document.getElementById('month-spent-sub').textContent = thisMonth.length + ' purchase' + (thisMonth.length !== 1 ? 's' : '') + ' ' + periodLabel;
-  document.getElementById('purchase-count').textContent = totalItems;
-  document.getElementById('purchase-count-sub').textContent = list.length + ' line item' + (list.length !== 1 ? 's' : '');
+  document.getElementById('pokemon-spent').textContent = currencySymbol() + pokemonTotal.toFixed(2);
+  document.getElementById('pokemon-spent-sub').textContent = pokemonList.length + ' Pokemon purchase' + (pokemonList.length !== 1 ? 's' : '');
 
-  const spendBySource = { store: 0, online: 0, market: 0 };
+  // Category breakdown
+  const spendByCat = { pokemon: 0, onepiece: 0 };
   list.forEach(e => {
-    if (spendBySource[e.source] !== undefined) {
-      spendBySource[e.source] += getDisplayPrice(e) * (e.quantity || 1) + convertToDisplay(e.delivery_fee_gbp || 0);
+    const cat = e.category || 'pokemon';
+    if (spendByCat[cat] !== undefined) {
+      spendByCat[cat] += getDisplayPrice(e) * (e.quantity || 1) + convertToDisplay(e.delivery_fee_gbp || 0);
     }
   });
   const totalSpend = total || 1;
-  const breakdown = document.getElementById('source-breakdown');
-  breakdown.innerHTML = ['store', 'online', 'market'].map(src => {
-    const pct = Math.round((spendBySource[src] / totalSpend) * 100);
+  const catLabels = { pokemon: 'Pokemon', onepiece: 'One Piece' };
+  const breakdown = document.getElementById('category-breakdown');
+  breakdown.innerHTML = ['pokemon', 'onepiece'].map(cat => {
+    const pct = Math.round((spendByCat[cat] / totalSpend) * 100);
     return `<div class="source-bar-row">
-      <span class="source-bar-label">${src.charAt(0).toUpperCase() + src.slice(1)}</span>
-      <div class="source-bar-track"><div class="source-bar-fill ${src}" style="width:${pct}%"></div></div>
+      <span class="source-bar-label">${catLabels[cat]}</span>
+      <div class="source-bar-track"><div class="source-bar-fill ${cat}" style="width:${pct}%"></div></div>
       <span class="source-bar-pct">${pct}%</span>
     </div>`;
   }).join('');
@@ -2117,8 +2230,9 @@ function renderChart() {
   const chartTitle = document.getElementById('chart-title');
   chartTitle.textContent = periodMode === 'month' ? 'Monthly Spending' : 'Payday Spending (23rd – 22nd)';
 
+  const chartPurchases = spendingCategoryFilter === 'all' ? purchases : purchases.filter(e => e.category === spendingCategoryFilter);
   const data = periods.map(p => {
-    return purchases.filter(e => {
+    return chartPurchases.filter(e => {
       return e.date >= p.startDate && e.date <= p.endDate;
     }).reduce((s, e) => s + getDisplayPrice(e) * (e.quantity || 1) + convertToDisplay(e.delivery_fee_gbp || 0), 0);
   });
@@ -2227,6 +2341,7 @@ function sortSpending(col, thEl) {
 /* ===== Table ===== */
 function getFiltered() {
   let list = [...purchases];
+  if (spendingCategoryFilter !== 'all') list = list.filter(e => e.category === spendingCategoryFilter);
   if (sourceFilter !== 'all') list = list.filter(e => e.source === sourceFilter);
   if (searchQuery.trim()) {
     const q = searchQuery.toLowerCase().trim();
@@ -2386,12 +2501,29 @@ function setSourceFilter(source, el) {
   renderTable();
 }
 
+function setSpendingCategory(cat, el) {
+  spendingCategoryFilter = cat;
+  document.querySelectorAll('.category-toggle .pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  currentPage = 1;
+  renderAll();
+}
+
+function setCardCategory(cat, el) {
+  cardCategoryFilter = cat;
+  document.querySelectorAll('.card-category-toggle .pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  ctPage = 1;
+  renderCardAll();
+}
+
 /* ===== Modal ===== */
 function openAddModal() {
   editingId = null;
   document.getElementById('modal-title').textContent = 'Add Purchase';
   document.getElementById('form-submit-btn').textContent = 'Add Purchase';
   document.getElementById('form-id').value = '';
+  document.getElementById('form-category').value = 'onepiece';
   document.getElementById('form-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('form-item').value = '';
   document.getElementById('form-price').value = '';
@@ -2418,6 +2550,7 @@ function openEditModal(id) {
   document.getElementById('modal-title').textContent = 'Edit Purchase';
   document.getElementById('form-submit-btn').textContent = 'Save Changes';
   document.getElementById('form-id').value = entry.id;
+  document.getElementById('form-category').value = entry.category || 'pokemon';
   document.getElementById('form-date').value = entry.date;
   document.getElementById('form-item').value = entry.item;
   document.getElementById('form-currency').value = inputCur;
@@ -2548,7 +2681,9 @@ async function savePurchase(e) {
     delivery_fee_gbp: parseFloat(deliveryFeeGbp.toFixed(2)),
     delivery_fee_eur: parseFloat((deliveryFeeGbp * rates.eur).toFixed(2)),
     delivery_fee_usd: parseFloat((deliveryFeeGbp * rates.usd).toFixed(2)),
+    category: document.getElementById('form-category').value || 'onepiece',
   };
+  setCategoryForId(entry.id, entry.category);
 
   if (editingId) {
     const idx = purchases.findIndex(e => e.id === editingId);
@@ -2640,6 +2775,8 @@ function importJSON(event) {
         if (!p.quantity) p.quantity = 1;
         if (p.price_usd === undefined) p.price_usd = parseFloat((p.price_gbp * rates.usd).toFixed(2));
         if (p.delivery_fee_gbp === undefined) p.delivery_fee_gbp = 0;
+        if (!p.category) p.category = 'pokemon';
+        setCategoryForId(p.id, p.category);
       });
       purchases = data;
       try { localStorage.setItem('poketracker_purchases', JSON.stringify(purchases)); } catch (ex) {}
@@ -2687,6 +2824,7 @@ let ctSortCol = 'date'; // card table sort column
 let ctSortDir = 'desc'; // card table sort direction
 let prSortCol = 'series'; // pull rates sort column
 let prSortDir = 'asc'; // pull rates sort direction
+let cardCategoryFilter = 'pokemon'; // 'pokemon' | 'onepiece' | 'all'
 
 /* ===== Card Tracker Init ===== */
 function initCardTracker() {
@@ -2914,6 +3052,7 @@ function switchCardSubTab(tab, el) {
 
 /* ===== Card Tracker Render All ===== */
 function renderCardAll() {
+  migrateCards();
   loadCardSeries();
   renderCardDashboard();
   updateCardDataLists();
@@ -2922,12 +3061,18 @@ function renderCardAll() {
 }
 
 /* ===== Card Dashboard ===== */
+function getCardsByCategory() {
+  if (cardCategoryFilter === 'all') return cardEntries;
+  return cardEntries.filter(c => c.category === cardCategoryFilter);
+}
+
 function renderCardDashboard() {
-  const totalPacks = cardEntries.length;
-  const seriesCount = new Set(cardEntries.map(c => c.series)).size;
-  const rareCount = cardEntries.filter(c => c.had_rare).length;
+  const filtered = getCardsByCategory();
+  const totalPacks = filtered.length;
+  const seriesCount = new Set(filtered.map(c => c.series)).size;
+  const rareCount = filtered.filter(c => c.had_rare).length;
   const pullRate = totalPacks > 0 ? ((rareCount / totalPacks) * 100).toFixed(1) : '0.0';
-  const avgWeight = totalPacks > 0 ? (cardEntries.reduce((s, c) => s + (c.weight || 0), 0) / totalPacks).toFixed(3) : '0.000';
+  const avgWeight = totalPacks > 0 ? (filtered.reduce((s, c) => s + (c.weight || 0), 0) / totalPacks).toFixed(3) : '0.000';
 
   document.getElementById('ct-total-packs').textContent = totalPacks;
   document.getElementById('ct-total-packs-sub').textContent = totalPacks === 1 ? '1 pack opened' : totalPacks + ' packs opened';
@@ -2941,22 +3086,24 @@ function renderCardDashboard() {
 
 /* ===== Update Datalists ===== */
 function updateCardDataLists() {
-  // Series datalist
+  // Series datalist (all series, not filtered)
   const seriesDl = document.getElementById('series-datalist');
   seriesDl.innerHTML = cardSeriesList.map(s => '<option value="' + escapeHtml(s) + '">').join('');
 
   // Cover picture datalist
-  const covers = [...new Set(cardEntries.map(c => c.cover_picture).filter(Boolean))].sort(
+  const covers = [...new Set(getCardsByCategory().map(c => c.cover_picture).filter(Boolean))].sort(
     (a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' })
   );
   const coverDl = document.getElementById('cover-datalist');
   coverDl.innerHTML = covers.map(c => '<option value="' + escapeHtml(c) + '">').join('');
 
-  // Series filter dropdown
+  // Series filter dropdown (filtered by category)
+  const catCards = getCardsByCategory();
+  const catSeriesList = [...new Set(catCards.map(c => c.series).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
   const sel = document.getElementById('ct-series-filter');
   const currentVal = sel.value;
   sel.innerHTML = '<option value="all">All Series</option>';
-  cardSeriesList.forEach(s => {
+  catSeriesList.forEach(s => {
     const opt = document.createElement('option');
     opt.value = s;
     opt.textContent = s;
@@ -2987,7 +3134,7 @@ function sortCards(col, thEl) {
 }
 
 function getFilteredCards() {
-  let list = [...cardEntries];
+  let list = [...getCardsByCategory()];
   const seriesFilter = document.getElementById('ct-series-filter').value;
   const search = (document.getElementById('ct-search').value || '').toLowerCase().trim();
 
@@ -3024,7 +3171,8 @@ function renderCardTable() {
   const noResults = document.getElementById('ct-no-results');
   const pagEl = document.getElementById('ct-pagination');
 
-  if (cardEntries.length === 0) {
+  const catFiltered = getCardsByCategory();
+  if (catFiltered.length === 0) {
     tableEl.style.display = 'none';
     pagEl.style.display = 'none';
     noResults.style.display = 'none';
@@ -3113,8 +3261,9 @@ function sortPullRates(col, thEl) {
 }
 
 function renderPullRates() {
+  const filteredCards = getCardsByCategory();
   const seriesMap = {};
-  cardEntries.forEach(c => {
+  filteredCards.forEach(c => {
     if (!seriesMap[c.series]) {
       seriesMap[c.series] = { total: 0, rares: 0, totalWeight: 0 };
     }
@@ -3169,8 +3318,8 @@ function renderPullRates() {
   }).join('');
 
   // Summary cards
-  const totalPacks = cardEntries.length;
-  const totalRares = cardEntries.filter(c => c.had_rare).length;
+  const totalPacks = filteredCards.length;
+  const totalRares = filteredCards.filter(c => c.had_rare).length;
   const overallRate = totalPacks > 0 ? ((totalRares / totalPacks) * 100).toFixed(2) : '0.00';
 
   document.getElementById('ct-pull-summary').innerHTML =
@@ -3185,6 +3334,7 @@ function openCardModal() {
   document.getElementById('card-modal-title').textContent = 'Add Card Entry';
   document.getElementById('card-form-submit').textContent = 'Add Entry';
   document.getElementById('card-form-id').value = '';
+  document.getElementById('card-form-category').value = 'onepiece';
   document.getElementById('card-form-series').value = '';
   document.getElementById('card-form-weight').value = '';
   document.getElementById('card-form-cover').value = '';
@@ -3203,6 +3353,7 @@ function openEditCardModal(id) {
   document.getElementById('card-modal-title').textContent = 'Edit Card Entry';
   document.getElementById('card-form-submit').textContent = 'Save Changes';
   document.getElementById('card-form-id').value = entry.id;
+  document.getElementById('card-form-category').value = entry.category || 'pokemon';
   document.getElementById('card-form-series').value = entry.series;
   document.getElementById('card-form-weight').value = entry.weight;
   document.getElementById('card-form-cover').value = entry.cover_picture || '';
@@ -3241,8 +3392,10 @@ async function saveCardEntry(e) {
     cover_picture: cover || null,
     bipped: bipped,
     had_rare: rare,
-    created_at: existingEntry ? existingEntry.created_at : new Date().toISOString()
+    created_at: existingEntry ? existingEntry.created_at : new Date().toISOString(),
+    category: document.getElementById('card-form-category').value || 'onepiece'
   };
+  setCategoryForId(entry.id, entry.category);
 
   if (ctEditingId) {
     const idx = cardEntries.findIndex(function(c) { return c.id === ctEditingId; });
@@ -3307,6 +3460,8 @@ function importCardJSON(event) {
         if (!c.created_at) c.created_at = new Date().toISOString();
         if (c.bipped === undefined) c.bipped = false;
         if (c.had_rare === undefined) c.had_rare = false;
+        if (!c.category) c.category = 'pokemon';
+        setCategoryForId(c.id, c.category);
       });
       cardEntries = data;
       try { localStorage.setItem('poketracker_cards', JSON.stringify(cardEntries)); } catch (ex) {}
