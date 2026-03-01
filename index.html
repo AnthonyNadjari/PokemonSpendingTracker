@@ -326,7 +326,10 @@ tbody tr{border-bottom:1px solid var(--border-color);transition:background var(-
 tbody tr:last-child{border-bottom:none}
 tbody tr:hover{background:var(--bg-hover)}
 tbody td{padding:12px 16px;font-size:0.9rem;white-space:nowrap}
-td.item-cell{white-space:normal;min-width:160px;max-width:240px}
+td.item-cell{white-space:normal;min-width:160px;max-width:260px}
+.cat-badge{display:inline-block;font-size:0.6rem;font-weight:700;padding:1px 5px;border-radius:3px;vertical-align:middle;margin-left:5px;letter-spacing:0.02em}
+.cat-badge.pokemon{background:rgba(255,203,5,0.15);color:#d4a80a}
+.cat-badge.onepiece{background:rgba(230,48,47,0.13);color:#e6302f}
 .qty-badge{
   display:inline-flex;align-items:center;justify-content:center;
   background:var(--bg-tertiary);color:var(--text-secondary);
@@ -665,7 +668,7 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
 }
 .ct-header{
   display:flex;align-items:center;justify-content:space-between;
-  padding:20px 0 0;flex-wrap:wrap;gap:12px;
+  padding:20px 0 0;flex-wrap:wrap;gap:12px;margin-bottom:10px;
 }
 .ct-header h2{
   font-family:var(--font-display);font-weight:700;font-size:1.3rem;margin:0;
@@ -1154,8 +1157,8 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
         <div class="form-group">
           <label for="form-category">Category</label>
           <select id="form-category">
-            <option value="onepiece">One Piece</option>
             <option value="pokemon">Pokemon</option>
+            <option value="onepiece">One Piece</option>
           </select>
         </div>
         <div class="form-group">
@@ -1254,8 +1257,8 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
         <div class="form-group">
           <label for="card-form-category">Category</label>
           <select id="card-form-category">
-            <option value="onepiece">One Piece</option>
             <option value="pokemon">Pokemon</option>
+            <option value="onepiece">One Piece</option>
           </select>
         </div>
         <div class="form-group">
@@ -2428,7 +2431,7 @@ function renderTable() {
       : '<td data-label="">' + actionsHtml(entry) + '</td>';
     return '<tr>' +
       firstTd +
-      '<td data-label="Item" class="item-cell">' + escapeHtml(entry.item) + '</td>' +
+      '<td data-label="Item" class="item-cell">' + escapeHtml(entry.item) + '<span class="cat-badge ' + (entry.category || 'pokemon') + '">' + (entry.category === 'onepiece' ? 'OP' : 'PKM') + '</span></td>' +
       '<td data-label="Qty"><span class="qty-badge">' + qty + '</span></td>' +
       '<td data-label="Price">' + entrySym + unitPrice.toFixed(2) + '</td>' +
       '<td data-label="Total"><strong>' + entrySym + lineTotal.toFixed(2) + '</strong></td>' +
@@ -2523,7 +2526,7 @@ function openAddModal() {
   document.getElementById('modal-title').textContent = 'Add Purchase';
   document.getElementById('form-submit-btn').textContent = 'Add Purchase';
   document.getElementById('form-id').value = '';
-  document.getElementById('form-category').value = 'onepiece';
+  document.getElementById('form-category').value = 'pokemon';
   document.getElementById('form-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('form-item').value = '';
   document.getElementById('form-price').value = '';
@@ -2681,7 +2684,7 @@ async function savePurchase(e) {
     delivery_fee_gbp: parseFloat(deliveryFeeGbp.toFixed(2)),
     delivery_fee_eur: parseFloat((deliveryFeeGbp * rates.eur).toFixed(2)),
     delivery_fee_usd: parseFloat((deliveryFeeGbp * rates.usd).toFixed(2)),
-    category: document.getElementById('form-category').value || 'onepiece',
+    category: document.getElementById('form-category').value || 'pokemon',
   };
   setCategoryForId(entry.id, entry.category);
 
@@ -3334,7 +3337,7 @@ function openCardModal() {
   document.getElementById('card-modal-title').textContent = 'Add Card Entry';
   document.getElementById('card-form-submit').textContent = 'Add Entry';
   document.getElementById('card-form-id').value = '';
-  document.getElementById('card-form-category').value = 'onepiece';
+  document.getElementById('card-form-category').value = 'pokemon';
   document.getElementById('card-form-series').value = '';
   document.getElementById('card-form-weight').value = '';
   document.getElementById('card-form-cover').value = '';
@@ -3393,7 +3396,7 @@ async function saveCardEntry(e) {
     bipped: bipped,
     had_rare: rare,
     created_at: existingEntry ? existingEntry.created_at : new Date().toISOString(),
-    category: document.getElementById('card-form-category').value || 'onepiece'
+    category: document.getElementById('card-form-category').value || 'pokemon'
   };
   setCategoryForId(entry.id, entry.category);
 
