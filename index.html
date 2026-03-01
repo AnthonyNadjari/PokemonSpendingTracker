@@ -691,7 +691,7 @@ td.item-cell{white-space:normal;min-width:160px;max-width:260px}
 }
 .badge-yes{background:rgba(16,185,129,0.12);color:var(--market-color)}
 .badge-no{background:rgba(139,92,246,0.06);color:var(--text-muted)}
-.badge-bipped{background:rgba(255,203,5,0.12);color:var(--yellow)}
+.badge-bipped{background:rgba(59,130,246,0.12);color:#3b82f6}
 .filter-row{
   display:flex;gap:12px;margin-bottom:16px;align-items:center;flex-wrap:wrap;
 }
@@ -3222,7 +3222,7 @@ function renderCardTable() {
       : '<td data-label="">' + cardActionsHtml(entry) + '</td>';
     return '<tr>' +
       firstTd +
-      '<td data-label="Series"><strong>' + escapeHtml(entry.series) + '</strong></td>' +
+      '<td data-label="Series"><strong>' + escapeHtml(entry.series) + '</strong> <span class="cat-badge ' + (entry.category || 'pokemon') + '">' + (entry.category === 'onepiece' ? 'OP' : 'PKM') + '</span></td>' +
       '<td data-label="Weight" class="weight-cell">' + entry.weight.toFixed(3) + 'g</td>' +
       '<td data-label="Cover">' + (entry.cover_picture ? escapeHtml(entry.cover_picture) : '<span style="color:var(--text-muted)">-</span>') + '</td>' +
       '<td data-label="Bipped">' + (entry.bipped ? '<span class="badge badge-bipped">Bipped</span>' : '<span class="badge badge-no">No</span>') + '</td>' +
