@@ -1218,7 +1218,7 @@ td.item-cell{white-space:normal;min-width:160px;max-width:240px}
         <input type="hidden" id="card-form-id" value="">
         <div class="form-group">
           <label for="card-form-series">Series</label>
-          <input type="text" id="card-form-series" list="series-datalist" placeholder="Type or select a series..." required>
+          <input type="text" id="card-form-series" list="series-datalist" placeholder="Type or select a series..." oninput="updateCoverDatalist()" required>
           <datalist id="series-datalist"></datalist>
         </div>
         <div class="form-group">
@@ -2856,12 +2856,8 @@ function updateCardDataLists() {
   const seriesDl = document.getElementById('series-datalist');
   seriesDl.innerHTML = cardSeriesList.map(s => '<option value="' + escapeHtml(s) + '">').join('');
 
-  // Cover picture datalist
-  const covers = [...new Set(cardEntries.map(c => c.cover_picture).filter(Boolean))].sort(
-    (a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' })
-  );
-  const coverDl = document.getElementById('cover-datalist');
-  coverDl.innerHTML = covers.map(c => '<option value="' + escapeHtml(c) + '">').join('');
+  // Cover picture datalist (restricted to the currently selected series)
+  updateCoverDatalist();
 
   // Series filter dropdown
   const sel = document.getElementById('ct-series-filter');
@@ -2874,6 +2870,21 @@ function updateCardDataLists() {
     sel.appendChild(opt);
   });
   sel.value = currentVal || 'all';
+}
+
+/* Build the cover-picture suggestions, restricted to the series currently typed
+   in the card form so each series only shows the covers entered for it. With no
+   series selected yet, all covers are suggested. */
+function updateCoverDatalist() {
+  const coverDl = document.getElementById('cover-datalist');
+  if (!coverDl) return;
+  const seriesInput = document.getElementById('card-form-series');
+  const series = (seriesInput ? seriesInput.value : '').trim().toLowerCase();
+  const covers = [...new Set(cardEntries
+    .filter(c => c.cover_picture && (!series || (c.series || '').trim().toLowerCase() === series))
+    .map(c => c.cover_picture)
+  )].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+  coverDl.innerHTML = covers.map(c => '<option value="' + escapeHtml(c) + '">').join('');
 }
 
 /* ===== Card Table ===== */
