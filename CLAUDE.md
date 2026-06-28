@@ -59,4 +59,4 @@ A single-page web app (pure HTML/CSS/JS, no build step) for tracking Pokemon TCG
 - Store names are persisted separately and auto-synced from purchases
 
 ## Branch
-Main development branch: `main`
+Main development branch: `main`. **Always commit and push changes directly to `main`** — this is the real, deployed version of the app. Do NOT create or work on separate feature branches, even if a session is initialized on one; move the work to `main` instead.
